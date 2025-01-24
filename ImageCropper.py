@@ -9,7 +9,7 @@ def main():
     PATH_TO_DATA_SOURCE = '/home/dehghani/EfficientVideoQueryUsingCP/data/coco/train2017'
     PATH_TO_ANNOTATIONS = '/home/dehghani/EfficientVideoQueryUsingCP/data/coco/annotations/instances_train2017.json'
     PATH_TO_DESTINATION = '/home/dehghani/EfficientVideoQueryUsingCP/data/coco/cropped'
-  
+    
     if os.path.exists(PATH_TO_DESTINATION):
         shutil.rmtree(PATH_TO_DESTINATION)
     os.makedirs(PATH_TO_DESTINATION)
@@ -31,7 +31,7 @@ def main():
                 cropped_image = image_file.crop(bbox)
                 cropped_image.save(os.path.join(PATH_TO_DESTINATION, f'{image[:-4]}_{index}_{category}.jpg'))
 
-
+    
 def get_annotations(annotations: dict, filename: str) -> list[tuple]:
 
     # get image id

@@ -14,7 +14,7 @@ This class evaluates the performace gain through usage of YOLO heavy on the unce
 
 PATH_TO_DATA_SOURCE = '/data/dehghani/EfficientVideoQueryUsingCP/coco/train2017'
 PATH_TO_ANNOTATIONS = '/data/dehghani/EfficientVideoQueryUsingCP/coco/annotations/instances_train2017.json'
-TEMP_DIR = 'EfficientVideoQueryUsingCP/test'
+TEMP_DIR = '/home/dehghani/temp'
 CONF_THRESHOLD = 0.125 # find dynamically or experimentally to make recall close to 1
 IOU_THRESHOLD = 0.5
 CALIBRATION_SIZE = 50

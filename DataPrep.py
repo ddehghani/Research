@@ -13,26 +13,29 @@ import rpack
 # Define the paths to the data source and annotations
 PATH_TO_SOURCE = '/data/dehghani/EfficientVideoQueryUsingCP/coco/train2017'
 PATH_TO_ANNOTATIONS = '/data/dehghani/EfficientVideoQueryUsingCP/coco/annotations/instances_train2017.json'
-# PATH_TO_DESTINATION = '/data/dehghani/EfficientVideoQueryUsingCP/coco/packed'
-PATH_TO_DESTINATION = '/home/dehghani/EfficientVideoQueryUsingCP'
+PATH_TO_DESTINATION = '/data/dehghani/EfficientVideoQueryUsingCP/coco/packed'
 
 # Config constants
 PADDING = 20 # padding arround each bbox in pixels
-PACK_SIZE = 4
-GRID_WIDTH = 2
-GRID_HEIGHT = 2
-PACKING_PADDING = 10
-
+PACK_SIZE = 9
+GRID_WIDTH = 3
+GRID_HEIGHT = 3
+PACKING_PADDING = 15
 
 image_counter = 0
 def main():
     # list all the files in the directory
     files = os.listdir(PATH_TO_SOURCE)
-
     # remove the destination directory if it exists and create a new one
+    path_to_images = os.path.join(PATH_TO_DESTINATION, 'images')
+    path_to_labels = os.path.join(PATH_TO_DESTINATION, 'labels')
     if os.path.exists(PATH_TO_DESTINATION):
         shutil.rmtree(PATH_TO_DESTINATION)
     os.makedirs(PATH_TO_DESTINATION)
+    os.makedirs(os.path.join(PATH_TO_DESTINATION, 'train/images'))
+    os.makedirs(os.path.join(PATH_TO_DESTINATION, 'val/images'))
+    os.makedirs(os.path.join(PATH_TO_DESTINATION, 'train/labels'))
+    os.makedirs(os.path.join(PATH_TO_DESTINATION, 'val/labels'))
 
     # load the annotations from the json file
     with open(PATH_TO_ANNOTATIONS, 'r') as f:
@@ -42,7 +45,7 @@ def main():
     cropped_images = []
 
     # loop through each file
-    for file in files:
+    for file in tqdm(files):
         # check if the file is an image file
         if file.endswith('.jpg') or file.endswith('.png'):
             image_annotations = get_annotations(annotations, file)
@@ -70,17 +73,12 @@ def main():
                     if len(cropped_images) == PACK_SIZE:
                         generate_packed_image(cropped_images)
                         cropped_images.clear()
-                        return
+                    
                 except Exception as e:
                     print(e)
+                    cropped_images.clear()
                     print(f'an error occured while processing image:{file}')
         
-            # get all annotations bboxes
-            # add padding for each 
-            # add to a list 
-            # once the list reaches a THRESHOLD pack and save the text file in a seperate folder
-            # reset the list
-            pass
             # class x_center y_center width height (normalized)
 
 def generate_packed_image(cropped_images: list):
@@ -108,24 +106,26 @@ def generate_packed_image(cropped_images: list):
 
     # paste cropped images onto the packed image and save it as a new image
     pack_image = Image.new('RGB', (packed_width, packed_height))
-    
-    for index, (img, label) in enumerate(cropped_images):
-        print(index)
-        print(label)
-        padded_img = add_padding(img, PACKING_PADDING, PACKING_PADDING, PACKING_PADDING, PACKING_PADDING, 0)
-        
-        label[1] += positions[index][0] + PACKING_PADDING
-        label[2] += positions[index][1] + PACKING_PADDING
-        print('{}\t{:.5f} {:.5f} {:.5f} {:.5f}'.format(label))
-        pack_image.paste(padded_img, positions[index])
+    train_val_dir = 'train/' if image_counter % 10 < 8 else 'val/'
+    with open(os.path.join(PATH_TO_DESTINATION, train_val_dir, f"labels/pack{image_counter}.txt"), "w") as f:
+        for index, (img, label) in enumerate(cropped_images):
+            padded_img = add_padding(img, PACKING_PADDING, PACKING_PADDING, PACKING_PADDING, PACKING_PADDING, 0)
+            label[1] += positions[index][0] + PACKING_PADDING
+            label[2] += positions[index][1] + PACKING_PADDING
+            label[1] /= pack_image.width
+            label[2] /= pack_image.height
+            label[3] /= pack_image.width
+            label[4] /= pack_image.height
+            f.write('{}\t{:.6f} {:.6f} {:.6f} {:.6f}\n'.format(*label))
+
+            pack_image.paste(padded_img, positions[index])
     
 
-    pack_image.save(os.path.join(PATH_TO_DESTINATION, f'pack{image_counter}.jpg'))
+    pack_image.save(os.path.join(PATH_TO_DESTINATION, train_val_dir, f'images/pack{image_counter}.jpg'))
     
     image_counter += 1
-
     # uncomment to view image
-    # image = cv2.imread('/home/dehghani/EfficientVideoQueryUsingCP/pack.jpg')
+    # image = cv2.imread('/data/dehghani/temp/images/pack0.jpg')
     # detections = sv.Detections(
     #     xyxy=np.array([[label[1] - label[3]/2,
     #             label[2] - label[4]/2,
@@ -141,8 +141,8 @@ def generate_packed_image(cropped_images: list):
     #         scene=image.copy(),
     #         detections=detections
     #     )
-    # with sv.ImageSink(target_dir_path='/home/dehghani/EfficientVideoQueryUsingCP/',overwrite=False) as sink:
-    #         sink.save_image(image=annotated_frame, image_name = f'pack_annotated.jpg')
+    # with sv.ImageSink(target_dir_path=PATH_TO_DESTINATION,overwrite=False) as sink:
+    #     sink.save_image(image=annotated_frame, image_name = f'pack_annotated.jpg')
     
 
 if __name__ == '__main__':
