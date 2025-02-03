@@ -65,23 +65,26 @@ def detect_using_yolo_light(image_paths, **kwargs):
         probs_normalized = (probs / probs.sum(dim=0, keepdim=True)).cpu().numpy()
         
         instances = [ Instance(name, conf, bbox, prob) for name, conf, bbox, prob in zip(classes, confidences, bboxes, probs_normalized)]
-        all_instances.append(instances)
-    return instances
+        result.append(instances)
+    return result
 
-def detect_using_yolo_heavy(image_path, **kwargs):
-    pred = yolo_heavy.predict(image_path, verbose=False, **kwargs)[0]
-    classes = [pred.names[id] for id in pred.boxes.data[:, 5].cpu().numpy()]
-    confidences = pred.boxes.data[:, 4].cpu().numpy()
-    bboxes = pred.boxes.data[:, :4].cpu().numpy() # in xyxy format
-    # convert xyxy to xywh format
-    bboxes[:, 2] -= bboxes[:, 0]
-    bboxes[:, 3] -= bboxes[:, 1]
+def detect_using_yolo_heavy(image_paths, **kwargs):
+    predictions = yolo_heavy.predict(image_paths, verbose=False, **kwargs)[0]
+    result = []
+    for pred in predictions:
+        classes = [pred.names[id] for id in pred.boxes.data[:, 5].cpu().numpy()]
+        confidences = pred.boxes.data[:, 4].cpu().numpy()
+        bboxes = pred.boxes.data[:, :4].cpu().numpy() # in xyxy format
+        # convert xyxy to xywh format
+        bboxes[:, 2] -= bboxes[:, 0]
+        bboxes[:, 3] -= bboxes[:, 1]
 
-    probs = pred.boxes.data[:, 6:]
-    probs_normalized = (probs / probs.sum(dim=0, keepdim=True)).cpu().numpy()
-    
-    instances = [ Instance(name, conf, bbox, prob) for name, conf, bbox, prob in zip(classes, confidences, bboxes, probs_normalized)]
-    return instances
+        probs = pred.boxes.data[:, 6:]
+        probs_normalized = (probs / probs.sum(dim=0, keepdim=True)).cpu().numpy()
+        
+        instances = [ Instance(name, conf, bbox, prob) for name, conf, bbox, prob in zip(classes, confidences, bboxes, probs_normalized)]
+        result.append(instances)
+    return result
 
 # Ultralytics without patch 
 # def detect_using_yolo_heavy(image_path, **kwargs):

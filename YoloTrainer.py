@@ -14,3 +14,17 @@ metrics = model.val()
 path = model.export()
 
 print(path)
+
+
+# vldb
+# introduction
+# related work in area
+# why doesn't it work
+# why is this need (offloading etc.)
+# why conformal prediction (more recent citation in more common papers)
+
+
+# icdm event heatmap
+
+# related work
+
