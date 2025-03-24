@@ -132,7 +132,7 @@ def pack(images:list, grid_width: int, grid_height: int, padding_width: float, p
         total_area += width * height
         image_sizes.append((width, height))
 
-    total_area *= 1.50 # accounting for lower packing ratio
+    total_area *= 1.70 # accounting for lower packing ratio
     ratio = math.ceil(math.sqrt(total_area / (grid_width * grid_height)))
     positions = rpack.pack(image_sizes, grid_width * ratio, grid_height * ratio)
 

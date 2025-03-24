@@ -23,25 +23,6 @@ model = fasterrcnn_resnet50_fpn_v2(weights=weights, box_score_thresh=0.9)
 model.eval()
 preprocess = weights.transforms()
 
-# Microsoft
-from azure.ai.vision.imageanalysis import ImageAnalysisClient
-from azure.ai.vision.imageanalysis.models import VisualFeatures
-from azure.core.credentials import AzureKeyCredential
-
-microsoft_endpoint = 'https://researchvisionyorku.cognitiveservices.azure.com/'
-microsoft_key = '861ea6c3e535421faa4217ccbeba4864'
-microsoft_client = ImageAnalysisClient(
-    endpoint=microsoft_endpoint,
-    credential=AzureKeyCredential(microsoft_key)
-)
-
-# Amazon
-import boto3
-amazon_client = boto3.client('rekognition')
-
-# Google
-from google.cloud import vision
-google_client = vision.ImageAnnotatorClient()
 
 @dataclass
 class Instance:
@@ -71,7 +52,7 @@ def detect_using_yolo_light(image_paths, **kwargs):
 def detect_using_yolo_heavy(image_paths, **kwargs):
     predictions = yolo_heavy.predict(image_paths, verbose=False, **kwargs)[0]
     result = []
-    for pred in predictions:
+    for pred in [predictions]:
         classes = [pred.names[id] for id in pred.boxes.data[:, 5].cpu().numpy()]
         confidences = pred.boxes.data[:, 4].cpu().numpy()
         bboxes = pred.boxes.data[:, :4].cpu().numpy() # in xyxy format
@@ -118,6 +99,16 @@ def detect_using_faster_rcnn(image_path):
     return instances
 
 def detect_using_microsoft(image_path):
+    from azure.ai.vision.imageanalysis import ImageAnalysisClient
+    from azure.ai.vision.imageanalysis.models import VisualFeatures
+    from azure.core.credentials import AzureKeyCredential
+
+    microsoft_endpoint = 'https://researchvisionyorku.cognitiveservices.azure.com/'
+    microsoft_key = '861ea6c3e535421faa4217ccbeba4864'
+    microsoft_client = ImageAnalysisClient(
+        endpoint=microsoft_endpoint,
+        credential=AzureKeyCredential(microsoft_key)
+)
     with open(image_path, "rb") as data:
         result = microsoft_client.analyze(
             image_data=data.read(),
@@ -135,7 +126,10 @@ def detect_using_microsoft(image_path):
     return instances
 
 def detect_using_amazon(image_path):
-    # get image 
+    import boto3
+    amazon_client = boto3.client('rekognition')
+    
+    # Read image
     img = Image.open(image_path) 
     with open(image_path, 'rb') as data:
         result = amazon_client.detect_labels(
@@ -160,6 +154,8 @@ def detect_using_amazon(image_path):
     return instances
 
 def detect_using_google(image_path):
+    from google.cloud import vision
+    google_client = vision.ImageAnnotatorClient()
     # get image 
     img = Image.open(image_path) 
   
