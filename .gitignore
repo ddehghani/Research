@@ -1,1 +1,7 @@
 *.pt
+
+_pycache__/
+*.py[cod]
+*$py.class
+
+*.jpg

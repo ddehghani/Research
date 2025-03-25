@@ -30,6 +30,7 @@ class Instance:
     confidence: float
     bbox: list # xywh format
     probs: Optional[list] = None
+    objectness_score: float = None
 
 def detect_using_yolo_light(image_paths, **kwargs):
     predictions = yolo_light.predict(image_paths, verbose=False, **kwargs)
@@ -43,9 +44,11 @@ def detect_using_yolo_light(image_paths, **kwargs):
         bboxes[:, 3] -= bboxes[:, 1]
 
         probs = pred.boxes.data[:, 6:]
-        probs_normalized = (probs / probs.sum(dim=0, keepdim=True)).cpu().numpy()
+        objectness_score = probs.sum(dim=1, keepdim=True)
+        probs_normalized = (probs / objectness_score).cpu().numpy()
         
-        instances = [ Instance(name, conf, bbox, prob) for name, conf, bbox, prob in zip(classes, confidences, bboxes, probs_normalized)]
+        instances = [ Instance(name, conf, bbox, prob, os) for name, conf, bbox, prob, os in zip(classes, confidences, bboxes, probs_normalized, objectness_score.cpu().numpy())]
+        print(len(instances))
         result.append(instances)
     return result
 
@@ -61,9 +64,11 @@ def detect_using_yolo_heavy(image_paths, **kwargs):
         bboxes[:, 3] -= bboxes[:, 1]
 
         probs = pred.boxes.data[:, 6:]
-        probs_normalized = (probs / probs.sum(dim=0, keepdim=True)).cpu().numpy()
+        objectness_score = probs.sum(dim=1, keepdim=True)
+        probs_normalized = (probs / objectness_score).cpu().numpy()
         
-        instances = [ Instance(name, conf, bbox, prob) for name, conf, bbox, prob in zip(classes, confidences, bboxes, probs_normalized)]
+        instances = [ Instance(name, conf, bbox, prob, os) for name, conf, bbox, prob, os in zip(classes, confidences, bboxes, probs_normalized, objectness_score.cpu().numpy())]
+        print(len(instances))
         result.append(instances)
     return result
 
