@@ -86,7 +86,6 @@ def non_max_suppression(
     xc = prediction[:, 4:mi].amax(1) > conf_thres  # candidates
     
     # objectness_scores = prediction[:, 4:, :].sum(dim= 1)
-    # print(objectness_scores.shape)
 
     time_limit = 2.0 + max_time_img * bs  # seconds to quit after
     multi_label &= nc > 1  # multiple labels per box (adds 0.5ms/img)

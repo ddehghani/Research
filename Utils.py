@@ -2,7 +2,7 @@ import supervision as sv
 import copy
 import cv2
 import numpy as np
-from ObjectDetection import Instance
+from models import Instance
 from PIL import Image
 import rpack
 import math

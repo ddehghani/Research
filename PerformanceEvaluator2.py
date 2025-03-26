@@ -1,4 +1,4 @@
-from ObjectDetection import *
+from models import *
 from Utils import *
 import json
 import os
