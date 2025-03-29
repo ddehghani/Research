@@ -12,6 +12,9 @@ MIN_BBOX_SIZE = 4000
 IOU_THRESHOLD = 0.1
 COCO_LABELS = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
 
+def load_image(path: str):
+    return Image.open(path)
+
 def no_overlap(annotations_original):
     annotations = copy.deepcopy(annotations_original)
     no_overlap = []
@@ -191,7 +194,7 @@ def gridify(images:list, grid_width:int, grid_height: int, padding_width: float,
 
     return annotations, grid_image
 
-def add_padding(pil_img, top, right, bottom, left, color):
+def add_padding(pil_img, top = 10, right = 10, bottom = 10, left = 10, color = 0):
     width, height = pil_img.size
     new_width = width + right + left
     new_height = height + top + bottom
