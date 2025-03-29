@@ -8,7 +8,7 @@ import rpack
 import math
 from tabulate import tabulate
 
-MIN_BBOX_SIZE = 4000  # 929 experimentally minimum
+MIN_BBOX_SIZE = 4000
 IOU_THRESHOLD = 0.1
 COCO_LABELS = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
 
@@ -29,11 +29,14 @@ def no_overlap(annotations_original):
 def no_overlap_bulk(annotations: list):
     return [no_overlap(annotation) for annotation in annotations]
 
-def filter_annotation(annotations:list):
-    return [annotation for annotation in annotations if ( (annotation.bbox[2] *  annotation.bbox[3]) >= MIN_BBOX_SIZE)]
+def filter_annotations(annotations: list):
+    if not annotations:
+        return []
+    
+    if isinstance(annotations[0], Instance):
+        return [ann for ann in annotations if (ann.bbox[2] * ann.bbox[3]) >= MIN_BBOX_SIZE]
 
-def filter_annotation_bulk(annotations: list):
-    return [filter_annotation(annotation) for annotation in annotations]
+    return [filter_annotations(sublist) for sublist in annotations]
 
 def iou(boxA_original, boxB_original):
     # convert xywh to xyxy
@@ -196,7 +199,7 @@ def add_padding(pil_img, top, right, bottom, left, color):
     result.paste(pil_img, (left, top))
     return result
 
-def get_probability(annotation, gt_annotations):
+def get_true_class_probability(annotation, gt_annotations):
     iou_max = -1
     class_name = ''
     for gt_annotation in gt_annotations:
@@ -239,7 +242,18 @@ def calculate_performance(model_preds: list, model_names: list, gt_annotations: 
     print(tabulate(data, headers=['Name', 'Recall', 'Precision', 'Accuracy'], tablefmt='grid'))
 
 def get_prediction_sets(annotations, qhat):
-    for image in annotations:
-        for instance in image:
+    if not annotations:
+        return []
+    
+    if isinstance(annotations, Instance):
+        indexes = 1 - annotations.probs <= qhat
+        return [lbl for lbl, index in zip(COCO_LABELS,indexes) if index]
+    
+    if isinstance(annotations[0], Instance):
+        result = []
+        for instance in annotations:
             indexes = 1 - instance.probs <= qhat
-            pred_set = [lbl for lbl, index in zip(COCO_LABELS, indexes) if index]
+            result.append([lbl for lbl, index in zip(COCO_LABELS,indexes) if index])
+        return result
+
+    return [get_prediction_sets(sublist, qhat) for sublist in annotations]

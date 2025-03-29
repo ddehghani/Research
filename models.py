@@ -35,7 +35,7 @@ class Edge(Model):
         if not hasattr(self, "model"):
             self.model = YOLO("yolov5nu.pt")
 
-    def detect(self, image_paths, **kwargs) -> list[Instance]:
+    def detect(self, image_paths, **kwargs) -> list[List[Instance]]:
         predictions = self.model.predict(image_paths, verbose=False, **kwargs)
         result = []
         for pred in predictions:
@@ -47,8 +47,9 @@ class Edge(Model):
             probs = pred.boxes.data[:, 6:]
             objectness_score = probs.sum(dim=1, keepdim=True)
             probs_normalized = (probs / objectness_score).cpu().numpy()
-            instances = [Instance(name, conf, bbox, prob, os) for name, conf, bbox, prob, os in zip(classes, confidences, bboxes, probs_normalized, objectness_score.cpu().numpy())]
+            instances = [Instance(name, conf, bbox, prob, os) for name, conf, bbox, prob, os in zip(classes, confidences, bboxes, probs.cpu().numpy(), objectness_score.cpu().numpy())]
             result.append(instances)
+        
         return result
 
 class Cloud(Model):
