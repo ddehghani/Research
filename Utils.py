@@ -154,7 +154,7 @@ def pack(images:list, grid_width: int, grid_height: int, padding_width: float, p
     for index, img_path in enumerate(images):
         img = Image.open(img_path)
         padded_img = add_padding(img, padding_width, padding_width, padding_width, padding_width, padding_color)
-        annotations.append(Instance(name=img_path.split('.')[0].split('_')[-1],
+        annotations.append(Instance(name=img_path,
                                     confidence=1,
                                     bbox = np.array([positions[index][0] + padding_width, positions[index][1] + padding_width,img.width, img.height])
                                     ))

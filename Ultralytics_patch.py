@@ -56,6 +56,7 @@ def non_max_suppression(
     max_wh=7680,
     in_place=True,
     rotated=False,
+    end2end= False
 ):
     """
     Perform non-maximum suppression (NMS) on a set of boxes, with support for masks and multiple labels per box.
