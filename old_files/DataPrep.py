@@ -4,7 +4,7 @@ import os
 import shutil
 import math
 from tqdm import tqdm
-from Utils import get_annotations, classToId, annotateAndSave, add_padding
+from utils import get_annotations, classToId, annotateAndSave, add_padding
 import supervision as sv
 import numpy as np
 import cv2

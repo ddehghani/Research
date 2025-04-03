@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from PIL import Image
 from typing import Optional, List
 from ultralytics import YOLO
-import Ultralytics_patch
+import ultralytics_patch
 # from torchvision.io.image import read_image
 # from torchvision.models.detection import fasterrcnn_resnet50_fpn_v2, FasterRCNN_ResNet50_FPN_V2_Weights
 # import boto3
@@ -46,7 +45,6 @@ class Edge(Model):
             bboxes[:, 3] -= bboxes[:, 1]
             probs = pred.boxes.data[:, 6:]
             objectness_score = probs.sum(dim=1, keepdim=True)
-            probs_normalized = (probs / objectness_score).cpu().numpy()
             instances = [Instance(name, conf, bbox, prob, os) for name, conf, bbox, prob, os in zip(classes, confidences, bboxes, probs.cpu().numpy(), objectness_score.cpu().numpy())]
             result.append(instances)
         
@@ -68,7 +66,6 @@ class Cloud(Model):
             bboxes[:, 3] -= bboxes[:, 1]
             probs = pred.boxes.data[:, 6:]
             objectness_score = probs.sum(dim=1, keepdim=True)
-            probs_normalized = (probs / objectness_score).cpu().numpy()
             instances = [Instance(name, conf, bbox, prob, os) for name, conf, bbox, prob, os in zip(classes, confidences, bboxes, probs.cpu().numpy(), objectness_score.cpu().numpy())]
             result.append(instances)
         
