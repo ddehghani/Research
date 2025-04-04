@@ -31,9 +31,9 @@ def pack(images: list, grid_width: int, grid_height: int, padding_width: float, 
         total_area += width * height
         padded_sizes.append((width, height))
 
-    total_area *= 1.70
+    total_area *= 1.7
     ratio = math.ceil(math.sqrt(total_area / (grid_width * grid_height)))
-    packed_positions = rpack.pack(padded_sizes, grid_width * ratio, grid_height * ratio)
+    packed_positions = rpack.pack(padded_sizes, grid_width * ratio)
 
     max_width = max(pos[0] + size[0] for pos, size in zip(packed_positions, padded_sizes))
     max_height = max(pos[1] + size[1] for pos, size in zip(packed_positions, padded_sizes))

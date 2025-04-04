@@ -49,7 +49,7 @@ def apply_cloud_corrections_with_packing(results: list, offload_set: list[tuple[
     ACCEPTANCE_MARGIN = 40
     CROP_PADDING = 400
     PACKING_PADDING = 35
-    GRID_WIDTH, GRID_HEIGHT = 2, 2
+    GRID_WIDTH, GRID_HEIGHT = 3, 3
     BATCH_SIZE = GRID_WIDTH * GRID_HEIGHT
 
     corrected = copy.deepcopy(results)
