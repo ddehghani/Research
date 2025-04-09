@@ -1,18 +1,17 @@
 import argparse
 import os
 from pathlib import Path
-from models import Edge, Cloud
-import json
+from models import Model
 import numpy as np
 from tqdm import tqdm
 import random
 from constants import IOU_THRESHOLD
-from utils.bbox_utils import iou
-from utils.image_utils import annotateAndSave
-from utils.annotation_utils import filter_annotations, get_annotations
-from utils.plotting_utils import calculate_performance, plot_scatterplot
-from utils.conformal_utils import get_prediction_sets, compute_nonconformity_scores
-from utils.correction_utils import apply_gt_corrections, apply_cloud_corrections, apply_cloud_corrections_with_packing
+# from utils.bbox_utils import iou
+from utils import (
+    load_dataset, iou, annotateAndSave, filter_annotations, 
+    calculate_performance, plot_scatterplot, 
+    get_prediction_sets, compute_nonconformity_scores,
+    apply_gt_corrections, apply_cloud_corrections, apply_cloud_corrections_with_packing)
 
 
 def select_alpha(predictions: list, nonconformity_scores: list, output_dir: str) -> tuple[float, float]:
@@ -65,17 +64,18 @@ def split_images(images: list[str], calibration_ratio: float) -> tuple[list[str]
     split_index = int(len(images) * calibration_ratio)
     return images[:split_index], images[split_index:]
 
-def select_confidence_threshold(images: list[str], ground_truth: dict, output_dir: str, iou_threshold: float) -> float:
+def select_confidence_threshold(images: list[str], get_annotations, output_dir: str, iou_threshold: float, edge_model: Model) -> float:
     print(f"Drawing confidence threshold vs recall plot ...")
     confs = [0.05 * i + 0.05 for i in range(19)]
     recalls = []
     for conf in tqdm(confs):
-        results = Edge().detect(images, conf = conf)
+        results = edge_model.detect(images, conf = conf)
         
         tp = 0
         tp_and_fn = 0
         for image, detections in zip(images,  results):
-            gt_annotations = filter_annotations(get_annotations(ground_truth, image))
+            image_id = Path(image).stem
+            gt_annotations = filter_annotations(get_annotations(image_id))
             for gt_ant in gt_annotations:
                 tp_and_fn += 1
                 for detection in detections:
@@ -96,49 +96,50 @@ def main():
     Main entry point
     """
     parser = argparse.ArgumentParser(description="Prepare datasets for selective cloud offloading in object detection.")
-    parser.add_argument("input_dir", type=str)
     parser.add_argument("output_dir", type=str)
-    parser.add_argument("--annotations_json", type=str, default="/data/dehghani/EfficientVideoQueryUsingCP/coco/annotations/instances_train2017.json")
+    parser.add_argument("--dataset", type=str,  default="coco", choices=["coco", "voc"], help="Dataset to use: coco or voc")
     parser.add_argument("--calibration_ratio", type=float, default=0.05)
     parser.add_argument("--alpha", type=float)
     parser.add_argument("--qhat", type=float)
     parser.add_argument("--conf", type=float)
     args = parser.parse_args()
 
-    if not os.path.exists(args.annotations_json):
-        raise FileNotFoundError(f"Annotation file {args.annotations_json} not found.")
+    dataset = load_dataset(args.dataset)
+    get_annotations = dataset["get_annotations"]
+    data_path = dataset["data_path"]
+    edge_model = dataset["edge_model"]
+    cloud_model = dataset["cloud_model"]
 
-    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    images = get_images(args.input_dir)
+    images = get_images(data_path)
     if not images:
         print("No images found!")
         return
-
+    
     calibration_images, detection_images = split_images(images, args.calibration_ratio)
+    print(f"Calibration images: {len(calibration_images)}, Detection images: {len(detection_images)}")
 
-    with open(args.annotations_json, 'r') as f:
-        gt = json.load(f)
-
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    
     if not args.conf:
-        args.conf = select_confidence_threshold(calibration_images, gt, args.output_dir, IOU_THRESHOLD)
+        args.conf = select_confidence_threshold(calibration_images, get_annotations, args.output_dir, IOU_THRESHOLD, edge_model)
     else:
         print(f"Using preset confidence threshold of {args.conf}")
 
-    edge_results = filter_annotations(Edge().detect(calibration_images, conf=args.conf))
+    edge_results = filter_annotations(edge_model.detect(calibration_images, conf=args.conf))
 
     if not args.qhat:
-        nonconformity_scores = compute_nonconformity_scores(calibration_images, edge_results, gt)
+        nonconformity_scores = compute_nonconformity_scores(calibration_images, edge_results, get_annotations)
         
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
 
-        plt.figure()
-        plt.hist(nonconformity_scores, bins=10)
-        plt.title("Histogram of Nonconformity Scores")
-        plt.xlabel("Nonconformity Score")
-        plt.ylabel("Frequency")
-        plt.grid(True)
-        plt.savefig(os.path.join(args.output_dir, "plots", "nonconformity_scores_histogram.png"))
-        plt.close()
+        # plt.figure()
+        # plt.hist(nonconformity_scores, bins=10)
+        # plt.title("Histogram of Nonconformity Scores")
+        # plt.xlabel("Nonconformity Score")
+        # plt.ylabel("Frequency")
+        # plt.grid(True)
+        # plt.savefig(os.path.join(args.output_dir, "plots", "nonconformity_scores_histogram.png"))
+        # plt.close()
 
         if not args.alpha:
             args.alpha = select_alpha(edge_results, nonconformity_scores, args.output_dir)
@@ -156,19 +157,19 @@ def main():
 
     print(f"Number of bboxes offloaded: {len(offload_set)}, {len(offload_set)*100/total:.2f}%")
     
-    gt_annotations = [filter_annotations(get_annotations(gt, img)) for img in calibration_images]
+    gt_annotations = [filter_annotations(get_annotations(Path(img).stem)) for img in calibration_images]
 
-    random_offload_set = select_random_bboxes(edge_results, 30, 2)
+    random_offload_set = select_random_bboxes(edge_results, len(offload_set), 1)
     gt_corrected_random = apply_gt_corrections(edge_results, random_offload_set, gt_annotations, IOU_THRESHOLD)
-    cloud_corrected_random = apply_cloud_corrections(edge_results, random_offload_set, calibration_images)
-    cloud_corrected_random_with_packing = apply_cloud_corrections_with_packing(edge_results, random_offload_set, calibration_images)
+    cloud_corrected_random = apply_cloud_corrections(edge_results, random_offload_set, calibration_images, cloud_model)
+    cloud_corrected_random_with_packing = apply_cloud_corrections_with_packing(edge_results, random_offload_set, calibration_images, cloud_model)
 
     print(f"Number of random bboxes offloaded: {len(random_offload_set)}, {len(random_offload_set)*100/total:.2f}%")
 
     gt_corrected = apply_gt_corrections(edge_results, offload_set, gt_annotations, IOU_THRESHOLD)
-    cloud_corrected = apply_cloud_corrections(edge_results, offload_set, calibration_images)
-    cloud_corrected_with_packing = apply_cloud_corrections_with_packing(edge_results, offload_set, calibration_images)
-    cloud_prediction = filter_annotations(Cloud().detect(calibration_images))
+    cloud_corrected = apply_cloud_corrections(edge_results, offload_set, calibration_images, cloud_model)
+    cloud_corrected_with_packing = apply_cloud_corrections_with_packing(edge_results, offload_set, calibration_images, cloud_model)
+    cloud_prediction = filter_annotations(cloud_model.detect(calibration_images))
     calculate_performance([edge_results, gt_corrected, cloud_corrected, cloud_corrected_with_packing, gt_corrected_random, cloud_corrected_random, cloud_corrected_random_with_packing, cloud_prediction,],
                                 ["Edge", "GT Corrected", "Cloud Corrected", "Cloud Corrected with Packing", "GT Corrected (Random Sample)", "Cloud Corrected (Randome Sample)", "Cloud Corrected with Packing (Randome Sample)", "Cloud Prediction",],  gt_annotations)
 

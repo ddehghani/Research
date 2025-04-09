@@ -1,5 +1,7 @@
 from models import Instance
-from constants import COCO_LABELS, MIN_BBOX_SIZE 
+import xml.etree.ElementTree as ET
+from pathlib import Path
+from constants import VOC_PATH, MIN_BBOX_SIZE
 
 
 def filter_annotations(annotations: list) -> list:
@@ -15,7 +17,7 @@ def filter_annotations(annotations: list) -> list:
 
     return [filter_annotations(sublist) for sublist in annotations]
 
-def get_annotations(annotations: dict, filename: str) -> list[Instance]:
+def get_coco_annotations(annotations: dict, filename: str) -> list[Instance]:
     """
     Retrieves and standardizes all instances corresponding to a given filename from a COCO-style annotation dict.
     """
@@ -46,8 +48,21 @@ def get_annotations(annotations: dict, filename: str) -> list[Instance]:
 
     return standard_instances
 
-def coco_class_to_id(class_name: str) -> int:
-    """
-    Converts a class name to its corresponding index in COCO_LABELS.
-    """
-    return COCO_LABELS.index(class_name)
+def get_voc_annotations(image_id: str) -> list[Instance]:
+    """Converts XML annotations from VOC format to standard format by extracting bounding boxes."""
+
+    def convert_box( box):
+        return [ box[0], box[2], box[1] - box[0], box[3] - box[2]]
+
+    in_file = open(Path(VOC_PATH) / f"../Annotations/{image_id}.xml")
+    tree = ET.parse(in_file)
+    root = tree.getroot()
+
+    instances = []
+    for obj in root.iter("object"):
+        cls = obj.find("name").text
+        if int(obj.find("difficult").text) != 1:
+            xmlbox = obj.find("bndbox")
+            bb = convert_box([float(xmlbox.find(x).text) for x in ("xmin", "xmax", "ymin", "ymax")])
+            instances.append(Instance(name=cls, confidence=1.0, bbox=bb))
+    return instances

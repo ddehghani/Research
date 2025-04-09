@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional, List
-from ultralytics import YOLO
+from ultralytics import YOLO as ultralytics_YOLO
 import ultralytics_patch
 # from torchvision.io.image import read_image
 # from torchvision.models.detection import fasterrcnn_resnet50_fpn_v2, FasterRCNN_ResNet50_FPN_V2_Weights
@@ -19,20 +19,12 @@ class Instance:
     objectness_score: float = None
 
 class Model:
-    _instances = {}
-
-    def __new__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Model, cls).__new__(cls)
-        return cls._instances[cls]
-
     def detect(self, image_path: str) -> list[List[Instance]]:
         raise NotImplementedError("Subclasses must implement the detect method")
 
-class Edge(Model):
-    def __init__(self):
-        if not hasattr(self, "model"):
-            self.model = YOLO("yolov5nu.pt")
+class YOLO(Model):
+    def __init__(self, model_path: str):
+        self.model = ultralytics_YOLO(model_path)
 
     def detect(self, image_paths, **kwargs) -> list[List[Instance]]:
         predictions = self.model.predict(image_paths, verbose=False, **kwargs)
@@ -44,29 +36,7 @@ class Edge(Model):
             bboxes[:, 2] -= bboxes[:, 0]
             bboxes[:, 3] -= bboxes[:, 1]
             probs = pred.boxes.data[:, 6:]
-            objectness_score = probs.sum(dim=1, keepdim=True)
-            instances = [Instance(name, conf, bbox, prob, os) for name, conf, bbox, prob, os in zip(classes, confidences, bboxes, probs.cpu().numpy(), objectness_score.cpu().numpy())]
-            result.append(instances)
-        
-        return result
-
-class Cloud(Model):
-    def __init__(self):
-        if not hasattr(self, "model"):
-            self.model = YOLO("yolo11x.pt")
-
-    def detect(self, image_paths, **kwargs):
-        predictions = self.model.predict(image_paths, verbose=False, **kwargs)
-        result = []
-        for pred in predictions:
-            classes = [pred.names[id] for id in pred.boxes.data[:, 5].cpu().numpy()]
-            confidences = pred.boxes.data[:, 4].cpu().numpy()
-            bboxes = pred.boxes.data[:, :4].cpu().numpy()
-            bboxes[:, 2] -= bboxes[:, 0]
-            bboxes[:, 3] -= bboxes[:, 1]
-            probs = pred.boxes.data[:, 6:]
-            objectness_score = probs.sum(dim=1, keepdim=True)
-            instances = [Instance(name, conf, bbox, prob, os) for name, conf, bbox, prob, os in zip(classes, confidences, bboxes, probs.cpu().numpy(), objectness_score.cpu().numpy())]
+            instances = [Instance(name, conf, bbox, prob.cpu().numpy()) for name, conf, bbox, prob, in zip(classes, confidences, bboxes, probs)]
             result.append(instances)
         
         return result

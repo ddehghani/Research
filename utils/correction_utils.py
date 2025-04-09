@@ -1,11 +1,12 @@
 import copy
 import shutil
 from pathlib import Path
-from models import Cloud
+from models import Model
 from .image_utils import load_image
 from .annotation_utils import filter_annotations
 from .packing_utils import pack
 from .bbox_utils import contains, iou
+from constants import CROP_PADDING, ACCEPTANCE_MARGIN, PACKING_PADDING, GRID_WIDTH, GRID_HEIGHT, REMOVE_LABELS
 
 def apply_gt_corrections(results: list, offload_set: list[tuple[int, int]], gt_annotations: list, iou_threshold: float) -> list:
     """
@@ -33,7 +34,7 @@ def apply_gt_corrections(results: list, offload_set: list[tuple[int, int]], gt_a
 
     return corrected
 
-def apply_cloud_corrections_with_packing(results: list, offload_set: list[tuple[int, int]], calibration_images: list[str]) -> list:
+def apply_cloud_corrections_with_packing(results: list, offload_set: list[tuple[int, int]], calibration_images: list[str], cloud_model: Model) -> list:
     """
     Applies cloud-based corrections to detection results using packed crops for batch processing.
 
@@ -45,12 +46,7 @@ def apply_cloud_corrections_with_packing(results: list, offload_set: list[tuple[
     Returns:
     - A deep copy of the corrected results list with labels updated based on cloud predictions
     """
-    
-    ACCEPTANCE_MARGIN = 40
-    CROP_PADDING = 400
-    PACKING_PADDING = 35
-    GRID_WIDTH, GRID_HEIGHT = 3, 3
-    BATCH_SIZE = GRID_WIDTH * GRID_HEIGHT
+    batch_size = GRID_WIDTH * GRID_HEIGHT
 
     corrected = copy.deepcopy(results)
     temp_dir = Path("temp")
@@ -86,14 +82,14 @@ def apply_cloud_corrections_with_packing(results: list, offload_set: list[tuple[
         cropped_info.append((str(crop_path), relative_bbox, (img_idx, inst_idx), image.size))
 
     # Batch process cropped images
-    for i in range(0, len(cropped_info), BATCH_SIZE):
-        batch = cropped_info[i:i + BATCH_SIZE]
+    for i in range(0, len(cropped_info),  batch_size):
+        batch = cropped_info[i:i +  batch_size]
         paths = [entry[0] for entry in batch]
         annotations, packed_img = pack(paths, GRID_WIDTH, GRID_HEIGHT, PACKING_PADDING, 0)
-        packed_path = temp_dir / f"cloud_input_packed_{i // BATCH_SIZE}.jpg"
+        packed_path = temp_dir / f"cloud_input_packed_{i //  batch_size}.jpg"
         packed_img.save(packed_path)
 
-        cloud_preds = filter_annotations(Cloud().detect([str(packed_path)]))[0]
+        cloud_preds = filter_annotations(cloud_model.detect([str(packed_path)]))[0]
         # Utils.annotateAndSave(packed_path, cloud_preds, str(temp_dir), f"cloud_input_packed_{i // BATCH_SIZE}_annotated.jpg")
 
         for path, rel_bbox, (img_idx, inst_idx), img_size in batch:
@@ -105,10 +101,10 @@ def apply_cloud_corrections_with_packing(results: list, offload_set: list[tuple[
             bbox[2], bbox[3] = rel_bbox[2], rel_bbox[3]
 
             # Define acceptance box with margin
-            accept_left = max(bbox[0] - ACCEPTANCE_MARGIN, 0)
-            accept_top = max(bbox[1] - ACCEPTANCE_MARGIN, 0)
-            accept_right = min(bbox[0] + bbox[2] + ACCEPTANCE_MARGIN, img_size[0])
-            accept_bottom = min(bbox[1] + bbox[3] + ACCEPTANCE_MARGIN, img_size[1])
+            accept_left = bbox[0] - ACCEPTANCE_MARGIN
+            accept_top = bbox[1] - ACCEPTANCE_MARGIN
+            accept_right = bbox[0] + bbox[2] + ACCEPTANCE_MARGIN
+            accept_bottom = bbox[1] + bbox[3] + ACCEPTANCE_MARGIN
             accept_bbox = (accept_left, accept_top, accept_right - accept_left, accept_bottom - accept_top)
 
             # Select valid cloud predictions
@@ -117,12 +113,12 @@ def apply_cloud_corrections_with_packing(results: list, offload_set: list[tuple[
             if candidates:
                 best_pred = max(candidates, key=lambda p: p.bbox[2] * p.bbox[3])
                 corrected[img_idx][inst_idx].name = best_pred.name
-            # else:
-            #     corrected[image_index].pop(instance_index)
-    # shutil.rmtree(temp_dir)
+            elif REMOVE_LABELS:
+                corrected[img_idx].pop(inst_idx)
+    shutil.rmtree(temp_dir)
     return corrected
 
-def apply_cloud_corrections(results: list, offload_set: list[tuple[int, int]], calibration_images: list[str]) -> list:
+def apply_cloud_corrections(results: list, offload_set: list[tuple[int, int]], calibration_images: list[str], cloud_model: Model) -> list:
     """
     Applies cloud-based corrections to detection results by cropping each instance individually.
 
@@ -134,8 +130,6 @@ def apply_cloud_corrections(results: list, offload_set: list[tuple[int, int]], c
     Returns:
     - A deep copy of the corrected results list with labels updated based on cloud predictions
     """
-    crop_padding = 400
-    acceptance_margin = 40
     corrected = copy.deepcopy(results)
     temp_dir = Path("temp")
     temp_dir.mkdir(exist_ok=True)
@@ -145,30 +139,30 @@ def apply_cloud_corrections(results: list, offload_set: list[tuple[int, int]], c
         image = load_image(image_path)
         bbox = results[image_index][instance_index].bbox
 
-        left = max(bbox[0] - crop_padding, 0)
-        top = max(bbox[1] - crop_padding, 0)
-        right = min(bbox[0] + bbox[2] + crop_padding, image.width)
-        bottom = min(bbox[1] + bbox[3] + crop_padding, image.height)
+        left = max(bbox[0] - CROP_PADDING, 0)
+        top = max(bbox[1] - CROP_PADDING, 0)
+        right = min(bbox[0] + bbox[2] + CROP_PADDING, image.width)
+        bottom = min(bbox[1] + bbox[3] + CROP_PADDING, image.height)
         cropped = image.crop((left, top, right, bottom))
         temp_path = temp_dir / f"cloud_input_{image_index}_{instance_index}.jpg"
         cropped.save(temp_path)
         # Utils.annotateAndSave(temp_path, [results[image_index][instance_index]], str(temp_dir), f"cloud_input_{image_index}_{instance_index}_annotated.jpg")
 
         # accept results withing the original bbox with a slight padding for error
-        left = max(bbox[0] - acceptance_margin, 0)
-        top = max(bbox[1] - acceptance_margin, 0)
-        right = min(bbox[0] + bbox[2] + acceptance_margin, image.width)
-        bottom = min(bbox[1] + bbox[3] + acceptance_margin, image.height)
+        left = max(bbox[0] - ACCEPTANCE_MARGIN, 0)
+        top = max(bbox[1] - ACCEPTANCE_MARGIN, 0)
+        right = min(bbox[0] + bbox[2] + ACCEPTANCE_MARGIN, image.width)
+        bottom = min(bbox[1] + bbox[3] + ACCEPTANCE_MARGIN, image.height)
         acceptance_bbox = (left, top, right - left, bottom - top)
 
-        cloud_result = filter_annotations(Cloud().detect([str(temp_path)]))[0]
+        cloud_result = filter_annotations(cloud_model.detect([str(temp_path)]))[0]
         filtered_preds = [pred for pred in cloud_result if contains(acceptance_bbox, pred.bbox)]
 
         if filtered_preds:
             final_pred = max(filtered_preds, key=lambda p: p.bbox[2] * p.bbox[3])
             corrected[image_index][instance_index].name = final_pred.name
-        # else:
-        #     corrected[image_index].pop(instance_index)
+        elif REMOVE_LABELS:
+            corrected[image_index].pop(instance_index)
     
     shutil.rmtree(temp_dir)
     return corrected

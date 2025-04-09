@@ -1,15 +1,17 @@
-from typing import Union
+from typing import Union, Callable
 from models import Instance
+from pathlib import Path
 from tqdm import tqdm
 from constants import COCO_LABELS, IOU_THRESHOLD
 from .bbox_utils import iou
-from .annotation_utils import filter_annotations, get_annotations, coco_class_to_id
+from .annotation_utils import filter_annotations
 
-def compute_nonconformity_scores(images: list[str], predictions: list, ground_truth: dict) -> list[float]:
+def compute_nonconformity_scores(images: list[str], predictions: list, get_annotations: Callable) -> list[float]:
     """Compute nonconformity scores for a set of predictions and ground truth annotations."""
     scores = []
     for image, detections in tqdm(zip(images, predictions), total=len(images)):
-        gt_annotations = filter_annotations(get_annotations(ground_truth, image))
+        image_id = Path(image).stem
+        gt_annotations = filter_annotations(get_annotations(image_id))
         for detection in filter_annotations(detections):
             nonconformity = 1 - get_true_class_probability(detection, gt_annotations)
             scores.append(nonconformity)
@@ -29,7 +31,8 @@ def get_true_class_probability(annotation: Instance, gt_annotations: list[Instan
             best_iou = iou_val
 
     if best_iou >= IOU_THRESHOLD:
-        return annotation.probs[coco_class_to_id(class_name)]
+        class_id = COCO_LABELS.index(class_name)
+        return annotation.probs[class_id]
     
     return 0.0
 

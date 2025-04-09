@@ -1,8 +1,11 @@
-*.pt
-
 _pycache__/
 *.py[cod]
 *$py.class
 
 *.jpg
 *.png
+
+runs/
+plots/
+
+old_files/
