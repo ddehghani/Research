@@ -7,6 +7,7 @@ from .annotation_utils import filter_annotations
 from .packing_utils import pack
 from .bbox_utils import contains, iou
 from constants import CROP_PADDING, ACCEPTANCE_MARGIN, PACKING_PADDING, GRID_WIDTH, GRID_HEIGHT, REMOVE_LABELS
+from PIL import Image
 
 def apply_gt_corrections(results: list, offload_set: list[tuple[int, int]], gt_annotations: list, iou_threshold: float) -> list:
     """
@@ -145,12 +146,23 @@ def apply_cloud_corrections(results: list, offload_set: list[tuple[int, int]], c
         bottom = min(bbox[1] + bbox[3] + CROP_PADDING, image.height)
         cropped = image.crop((left, top, right, bottom))
         temp_path = temp_dir / f"cloud_input_{image_index}_{instance_index}.jpg"
-        cropped.save(temp_path)
+        
+        blank_width = 1280
+        blank_height = 720
+        x_offset = (blank_width - cropped.width) // 2
+        y_offset = (blank_height - cropped.height) // 2
+
+        blank_image = Image.new("RGB", (blank_width, blank_height), (0, 0, 0))
+        blank_image.paste(cropped, (x_offset, y_offset))
+
+
+        # cropped.save(temp_path)
+        blank_image.save(temp_path)
         # Utils.annotateAndSave(temp_path, [results[image_index][instance_index]], str(temp_dir), f"cloud_input_{image_index}_{instance_index}_annotated.jpg")
 
         # accept results withing the original bbox with a slight padding for error
-        left = max(bbox[0] - ACCEPTANCE_MARGIN, 0)
-        top = max(bbox[1] - ACCEPTANCE_MARGIN, 0)
+        left = max(bbox[0] - ACCEPTANCE_MARGIN, 0) + x_offset
+        top = max(bbox[1] - ACCEPTANCE_MARGIN, 0) + y_offset
         right = min(bbox[0] + bbox[2] + ACCEPTANCE_MARGIN, image.width)
         bottom = min(bbox[1] + bbox[3] + ACCEPTANCE_MARGIN, image.height)
         acceptance_bbox = (left, top, right - left, bottom - top)
