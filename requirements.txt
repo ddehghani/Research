@@ -1,0 +1,8 @@
+ultralytics==8.3.65 
+numpy==1.26.4 
+matplotlib 
+seaborn 
+scikit-learn 
+supervision 
+rectangle-packer 
+fiftyone

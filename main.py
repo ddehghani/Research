@@ -54,13 +54,9 @@ def select_random_bboxes(edge_results, num_outer, num_inner):
 
     return selected_tuples
 
-def get_images(input_dir: str) -> list[str]:
-    """Retrieve all image paths from the input directory."""
-    return sorted([str(p) for p in Path(input_dir).glob("*.jpg")])  # Modify for other formats if needed
-
 def split_images(images: list[str], calibration_ratio: float) -> tuple[list[str], list[str]]:
     """Split images into calibration and detection sets based on the specified ratio."""
-    # random.shuffle(images)
+    random.shuffle(images)
     split_index = int(len(images) * calibration_ratio)
     return images[:split_index], images[split_index:]
 
@@ -97,29 +93,32 @@ def main():
     """
     parser = argparse.ArgumentParser(description="Prepare datasets for selective cloud offloading in object detection.")
     parser.add_argument("output_dir", type=str)
-    parser.add_argument("--dataset", type=str,  default="coco", choices=["coco", "voc"], help="Dataset to use: coco or voc")
+    parser.add_argument("--dataset", type=str,  default="coco", choices=["coco", "voc", "open-images"], help="Dataset to use: coco or voc, or open-images")
     parser.add_argument("--calibration_ratio", type=float, default=0.05)
     parser.add_argument("--alpha", type=float)
     parser.add_argument("--qhat", type=float)
     parser.add_argument("--conf", type=float)
+    parser.add_argument("--datasets_dir", type=str, default="./datasets", help="Where to store datasets")
     args = parser.parse_args()
 
-    dataset = load_dataset(args.dataset)
+    dataset = load_dataset(args.dataset, args.datasets_dir)
     get_annotations = dataset["get_annotations"]
-    data_path = dataset["data_path"]
+    images = dataset["images"]
     edge_model = dataset["edge_model"]
     cloud_model = dataset["cloud_model"]
 
-    images = get_images(data_path)
     if not images:
         print("No images found!")
         return
     
     calibration_images, detection_images = split_images(images, args.calibration_ratio)
     print(f"Calibration images: {len(calibration_images)}, Detection images: {len(detection_images)}")
-
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    
+
+    predictions = edge_model.detect(calibration_images[0])
+    annotateAndSave(calibration_images[0], predictions[0], args.output_dir, 'test.jpg')
+    return
+
     if not args.conf:
         args.conf = select_confidence_threshold(calibration_images, get_annotations, args.output_dir, IOU_THRESHOLD, edge_model)
     else:

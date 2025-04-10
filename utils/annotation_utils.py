@@ -1,7 +1,7 @@
 from models import Instance
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from constants import VOC_PATH, MIN_BBOX_SIZE
+from constants import MIN_BBOX_SIZE
 
 
 def filter_annotations(annotations: list) -> list:
@@ -48,13 +48,13 @@ def get_coco_annotations(annotations: dict, filename: str) -> list[Instance]:
 
     return standard_instances
 
-def get_voc_annotations(image_id: str) -> list[Instance]:
+def get_voc_annotations(image_id: str, annotations_dir: str) -> list[Instance]:
     """Converts XML annotations from VOC format to standard format by extracting bounding boxes."""
 
     def convert_box( box):
         return [ box[0], box[2], box[1] - box[0], box[3] - box[2]]
 
-    in_file = open(Path(VOC_PATH) / f"../Annotations/{image_id}.xml")
+    in_file = open(Path(annotations_dir) / f"{image_id}.xml")
     tree = ET.parse(in_file)
     root = tree.getroot()
 
@@ -66,3 +66,16 @@ def get_voc_annotations(image_id: str) -> list[Instance]:
             bb = convert_box([float(xmlbox.find(x).text) for x in ("xmin", "xmax", "ymin", "ymax")])
             instances.append(Instance(name=cls, confidence=1.0, bbox=bb))
     return instances
+
+
+# def get_annotations(image_id: str, labels_dir: str) -> list[Instance]:
+#     for file in os.listdir(labels_dir):
+#         if file.endswith(".txt") and file == image_id + ".txt":
+#             file_path = os.path.join(labels_dir, file)
+#             with open(file_path, 'r') as f:
+#                 for line in f:
+#                     parts = line.strip().split()
+#                     if len(parts) == 5:
+#                         class_id = parts[0]
+#                         bbox = parts[1:]  # [x_center, y_center, width, height]
+#                         print(f"Class ID: {class_id}, BBox: {bbox}")
