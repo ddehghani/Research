@@ -6,3 +6,4 @@ scikit-learn
 supervision 
 rectangle-packer 
 fiftyone
+scipy==1.10.1
