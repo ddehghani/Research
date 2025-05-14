@@ -6,7 +6,7 @@ from .image_utils import load_image
 from .annotation_utils import filter_annotations
 from .packing_utils import pack
 from .bbox_utils import contains, iou
-from constants import CROP_PADDING, ACCEPTANCE_MARGIN, PACKING_PADDING, GRID_WIDTH, GRID_HEIGHT, REMOVE_LABELS
+from constants import CROP_PADDING, ACCEPTANCE_MARGIN, PACKING_PADDING, GRID_WIDTH, GRID_HEIGHT
 from PIL import Image
 
 def apply_gt_corrections(results: list, offload_set: list[tuple[int, int]], gt_annotations: list, iou_threshold: float) -> list:

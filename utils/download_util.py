@@ -29,7 +29,16 @@ def download_open_images():
         split="train",
         label_types=["detections"],
         max_samples=int(1743042 * fraction),  # total samples in train split
-        # classes=["Car", "Person", "Dog", "Cat"],  # specify the classes you want
+        classes=['Aircraft', 'Airplane', 'Ambulance', 'Apple', 'Backpack', 
+                 'Banana', 'Bat (Animal)', 'Bed', 'Bicycle', 'Bicycle helmet', 
+                 'Bicycle wheel', 'Billiard table', 'Bird', 'Bottle', 'Boy', 
+                 'Bus', 'Car', 'Chair', 'Chicken', 'Coffee cup', 'Coffee table', 
+                 'Computer monitor', 'Duck', 'Eagle', 'Flower', 'Football', 
+                 'Football helmet', 'Girl', 'Golf cart', 'Handbag', 'Helmet', 
+                 'Kitchen & dining room table', 'Laptop', 'Luggage and bags', 'Man', 
+                 'Motorcycle', 'Mug', 'Owl', 'Parrot', 'Penguin', 'Person', 'Sofa bed', 
+                 'Stationary bicycle', 'Stool', 'Suitcase', 'Swan', 'Table', 'Television', 
+                 'Truck', 'Van', 'Vehicle', 'Volleyball (Ball)', 'Wheel', 'Woman'],
         overwrite=False
     )
 

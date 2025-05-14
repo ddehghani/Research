@@ -115,9 +115,9 @@ def main():
     print(f"Calibration images: {len(calibration_images)}, Detection images: {len(detection_images)}")
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
-    predictions = edge_model.detect(calibration_images[0])
-    annotateAndSave(calibration_images[0], predictions[0], args.output_dir, 'test.jpg')
-    return
+    # predictions = edge_model.detect(calibration_images[0])
+    # annotateAndSave(calibration_images[0], predictions[0], args.output_dir, 'test.jpg')
+    # return
 
     if not args.conf:
         args.conf = select_confidence_threshold(calibration_images, get_annotations, args.output_dir, IOU_THRESHOLD, edge_model)
