@@ -1,8 +1,72 @@
-_pycache__/
+# Byte-compiled / optimized / DLL files
+__pycache__/
 *.py[cod]
 *$py.class
-datasets/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# VS Code settings
+.vscode/
+
+# PyCharm settings
+.idea/
+
+# YOLO training artifacts
+runs/
+weights/
+*.pt
+*.onnx
+*.tflite
+*.mlmodel
+*.torchscript
+*.yaml
+
+# Dataset cache and outputs
+*.cache
+*.npz
 *.jpg
 *.png
-runs/
+*.jpeg
+labels/*.cache
+datasets/**/labels.cache
+datasets/**/instances.cache
+
+# Log files
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# pip files
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Test and coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+
+# mypy, pytype
+.mypy_cache/
+.pytype/
+
+# Pytest
+.pytest_cache/
+
+# Temporary output directories
+open-images/
+datasets/
+models/
 plots/

@@ -115,9 +115,21 @@ def main():
     print(f"Calibration images: {len(calibration_images)}, Detection images: {len(detection_images)}")
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
 
-    predictions = edge_model.detect(calibration_images[0])
-    annotateAndSave(calibration_images[0], predictions[0], args.output_dir, 'test.jpg')
-    return
+
+    # for testing purposes only 
+    # for i in range(10):
+    #     predictions = edge_model.detect(calibration_images[i])[0]
+    #     annotateAndSave(calibration_images[i], predictions, args.output_dir, f'model{i}.jpg')
+    # 
+    #     image_id = os.path.splitext(os.path.basename(calibration_images[i]))[0]
+    #     gt_predictions = get_annotations(image_id)
+    #     annotateAndSave(calibration_images[i], gt_predictions, args.output_dir, f'gt{i}.jpg')
+    #     print(i)
+    #     for pred in predictions:
+    #         print(pred.name)
+    #         
+    #     print(gt_predictions)
+    # return
 
     if not args.conf:
         args.conf = select_confidence_threshold(calibration_images, get_annotations, args.output_dir, IOU_THRESHOLD, edge_model)
@@ -157,8 +169,9 @@ def main():
     print(f"Number of bboxes offloaded: {len(offload_set)}, {len(offload_set)*100/total:.2f}%")
     
     gt_annotations = [filter_annotations(get_annotations(Path(img).stem)) for img in calibration_images]
-
     random_offload_set = select_random_bboxes(edge_results, len(offload_set), 1)
+
+    
     gt_corrected_random = apply_gt_corrections(edge_results, random_offload_set, gt_annotations, IOU_THRESHOLD)
     cloud_corrected_random = apply_cloud_corrections(edge_results, random_offload_set, calibration_images, cloud_model)
     cloud_corrected_random_with_packing = apply_cloud_corrections_with_packing(edge_results, random_offload_set, calibration_images, cloud_model)
@@ -171,6 +184,32 @@ def main():
     cloud_prediction = filter_annotations(cloud_model.detect(calibration_images))
     calculate_performance([edge_results, gt_corrected, cloud_corrected, cloud_corrected_with_packing, gt_corrected_random, cloud_corrected_random, cloud_corrected_random_with_packing, cloud_prediction,],
                                 ["Edge", "GT Corrected", "Cloud Corrected", "Cloud Corrected with Packing", "GT Corrected (Random Sample)", "Cloud Corrected (Randome Sample)", "Cloud Corrected with Packing (Randome Sample)", "Cloud Prediction",],  gt_annotations)
+    
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    # for different alphas ?
+    
+    # Sample data
+    strategies = ['Full Edge', 'Smart Offloading (CP)', 'Smart Offloading (CP + Packing)', 'Random', 'Full Cloud']
+    offload_costs = [0, 20, 15, 20, 50]  # hypothetical # of API calls
+    precisions = [0.45, 0.65, 0.67, 0.55, 0.75]
+    recalls = []
+    accuraccies = []
+    
+    # Plot
+    plt.figure(figsize=(8, 6))
+    sns.lineplot(x=offload_costs, y=precisions, marker='o')
+    for i, label in enumerate(strategies):
+        plt.text(offload_costs[i], precisions[i]+0.01, label, fontsize=9)
+    
+    plt.xlabel('Offloading Cost (API Calls)')
+    plt.ylabel('Precision')
+    plt.title('Precision vs. Offloading Cost')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(f"plots/{args.dataset}-precision_vs_cost.png", dpi=300, bbox_inches='tight')
+    
 
 if __name__ == "__main__":
     main()
+

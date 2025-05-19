@@ -5,8 +5,16 @@ from typing import Dict
 from .annotation_utils import get_coco_annotations, get_voc_annotations
 from .download_util import download_coco, download_voc, download_open_images
 from models import Instance
+import sys
+import os
 
 MAIN_DIR = Path(__file__).resolve().parent.parent
+
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(parent_dir)
+
+from constants import OPEN_IMAGES_LABELS_MAP as mapping
+
 
 def load_dataset(dataset_name: str, dataset_dir: str) -> Dict:
     def get_images(input_dir: str) -> list[str]:
@@ -18,7 +26,7 @@ def load_dataset(dataset_name: str, dataset_dir: str) -> Dict:
         dataset_dir.mkdir(parents=True, exist_ok=True)
 
     if dataset_name == "coco":
-        download_coco(dataset_dir / "coco")
+        # download_coco(dataset_dir / "coco")
         annotations = dataset_dir / "coco/annotations/instances_train2017.json"
         data_dir = dataset_dir / "coco/images/train2017"
 
@@ -27,16 +35,16 @@ def load_dataset(dataset_name: str, dataset_dir: str) -> Dict:
         return {
             "images": get_images(data_dir),
             "get_annotations": lambda img_id: get_coco_annotations(gt, img_id + ".jpg"),
-            "edge_model": YOLO(MAIN_DIR / "models/yolov5nu.pt"),
-            "cloud_model": YOLO(MAIN_DIR / "models/yolo11x.pt"),
+            "edge_model": YOLO(MAIN_DIR / "models/coco_edge.pt"),
+            "cloud_model": YOLO(MAIN_DIR / "models/coco_cloud.pt"),
         }
     elif dataset_name == "voc":
-        download_voc(dataset_dir / "voc")
+        # download_voc(dataset_dir / "voc")
         return {
             "images": get_images(dataset_dir / "voc/VOCdevkit/VOC2012/JPEGImages/"),
             "get_annotations": lambda img_id: get_voc_annotations(img_id, dataset_dir / "voc/VOCdevkit/VOC2012/Annotations/"),
-            "edge_model": YOLO(MAIN_DIR / "models/yolov5nu_voc_trained_min.pt"), 
-            "cloud_model": YOLO(MAIN_DIR / "models/yolo11x_voc_trained.pt"),
+            "edge_model": YOLO(MAIN_DIR / "models/voc_edge.pt"), 
+            "cloud_model": YOLO(MAIN_DIR / "models/voc_cloud.pt"),
         }
     elif dataset_name == "open-images":
         import os
@@ -44,22 +52,26 @@ def load_dataset(dataset_name: str, dataset_dir: str) -> Dict:
 
         dataset = download_open_images() # cant set dir
         gt = {}
+        unique = set(mapping.values())
+        unique.discard(None)
+        classes = sorted(list(unique))
+        
         for sample in dataset:
             image_id = os.path.splitext(os.path.basename(sample.filepath))[0]
             img = Image.open(sample.filepath)
             w, h = img.width, img.height
-            gt[image_id] = [Instance(detection.label, 1.0, [
+            gt[image_id] = [Instance(mapping[detection.label], 1.0, [
                 detection.bounding_box[0] * w,
                 detection.bounding_box[1] * h,
                 detection.bounding_box[2] * w,
                 detection.bounding_box[3] * h,
-            ]) for detection in sample.ground_truth.detections]
+            ]) for detection in sample.ground_truth.detections if mapping[detection.label] is not None]
         
         return {
             "images": [sample.filepath for sample in dataset],
             "get_annotations": lambda img_id: gt[img_id],
-            "edge_model": YOLO(MAIN_DIR / "models/yolov5nu_open_images_trained.pt"),
-            "cloud_model": YOLO(MAIN_DIR / "models/yolo11x_open_images_trained.pt"),
+            "edge_model": YOLO(MAIN_DIR / "models/yolov5nu_map2.pt"),
+            "cloud_model": YOLO(MAIN_DIR / "models/oiv7_cloud.pt"),
         }
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")

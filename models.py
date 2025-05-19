@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, List
 from ultralytics import YOLO as ultralytics_YOLO
 import ultralytics_patch
+import torch
 # from torchvision.io.image import read_image
 # from torchvision.models.detection import fasterrcnn_resnet50_fpn_v2, FasterRCNN_ResNet50_FPN_V2_Weights
 # import boto3
@@ -10,13 +11,13 @@ import ultralytics_patch
 # from azure.ai.vision.imageanalysis.models import VisualFeatures
 # from azure.core.credentials import AzureKeyCredential
 
-@dataclass
+@dataclass(slots=True)
 class Instance:
     name: str
     confidence: float
     bbox: list  # xywh format
     probs: Optional[list] = None
-    objectness_score: float = None
+    objectness_score: float | None = None
 
 class Model:
     def detect(self, image_path: str) -> list[List[Instance]]:
@@ -26,18 +27,46 @@ class YOLO(Model):
     def __init__(self, model_path: str):
         self.model = ultralytics_YOLO(model_path)
 
-    def detect(self, image_paths, **kwargs) -> list[List[Instance]]:
-        predictions = self.model.predict(image_paths, verbose=False, **kwargs)
+    def detect(self, image_paths, *, batch=8, half=True, imgsz=640, **kwargs) -> list[List[Instance]]:
+        with torch.inference_mode(), torch.amp.autocast('cuda', dtype=torch.float16):
+            predictions = self.model.predict(
+                image_paths, 
+                verbose=False, 
+                stream=True,
+                batch=batch,
+                half=half,
+                imgsz=640,
+                **kwargs)
+        
+        names = self.model.names
         result = []
         for pred in predictions:
-            classes = [pred.names[id] for id in pred.boxes.data[:, 5].cpu().numpy()]
-            confidences = pred.boxes.data[:, 4].cpu().numpy()
-            bboxes = pred.boxes.data[:, :4].cpu().numpy()
+            pred = pred.cpu()
+            
+            classes = [pred.names[id] for id in pred.boxes.data[:, 5].numpy()]
+            confidences = pred.boxes.data[:, 4].numpy()
+            bboxes = pred.boxes.data[:, :4].numpy()
             bboxes[:, 2] -= bboxes[:, 0]
             bboxes[:, 3] -= bboxes[:, 1]
             probs = pred.boxes.data[:, 6:]
-            instances = [Instance(name, conf, bbox, prob.cpu().numpy()) for name, conf, bbox, prob, in zip(classes, confidences, bboxes, probs)]
+            instances = [
+                Instance(name, conf, bbox, prob.numpy()) 
+                for name, conf, bbox, prob, in zip(classes, confidences, bboxes, probs)
+            ]
+            
+            
+            
+            # boxes = pred.boxes.xywh.numpy()
+            # cls_ids = pred.boxes.cls.numpy().astype(int)
+            # confs = pred.boxes.conf.numpy()
+            # probs = pred.probs.numpy() if pred.probs is not None else [None] * len(boxes)
+            # instances = [
+            #     Instance(names[cid], conf, box.tolist(), pb)
+            #     for box, cid, conf, pb in zip(boxes, cls_ids, confs, probs)
+            # ]
             result.append(instances)
+            del pred
+            torch.cuda.empty_cache()
         
         return result
 
