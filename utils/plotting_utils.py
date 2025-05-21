@@ -1,4 +1,3 @@
-from tabulate import tabulate
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
@@ -39,7 +38,7 @@ def calculate_performance(model_preds: list, model_names: list, gt_annotations: 
         accuracy = tp[idx] / (gt_total + fp[idx]) if (gt_total + fp[idx]) else 0
         data.append([name, recall, precision, accuracy])
 
-    print(tabulate(data, headers=['Name', 'Recall', 'Precision', 'Accuracy'], tablefmt='grid'))
+    return data
 
 def plot_scatterplot(x_values_dict: dict[str, list[float]], y_values_dict: dict[str, list[float]], output_dir: str = ".") -> None:
     """

@@ -5,7 +5,11 @@ from models import Model
 import numpy as np
 from tqdm import tqdm
 import random
-from constants import IOU_THRESHOLD
+from constants import IOU_THRESHOLD, GRID_WIDTH, GRID_HEIGHT
+from tabulate import tabulate
+import matplotlib.pyplot as plt
+import seaborn as sns
+from adjustText import adjust_text
 # from utils.bbox_utils import iou
 from utils import (
     load_dataset, iou, annotateAndSave, filter_annotations, 
@@ -182,32 +186,66 @@ def main():
     cloud_corrected = apply_cloud_corrections(edge_results, offload_set, calibration_images, cloud_model)
     cloud_corrected_with_packing = apply_cloud_corrections_with_packing(edge_results, offload_set, calibration_images, cloud_model)
     cloud_prediction = filter_annotations(cloud_model.detect(calibration_images))
-    calculate_performance([edge_results, gt_corrected, cloud_corrected, cloud_corrected_with_packing, gt_corrected_random, cloud_corrected_random, cloud_corrected_random_with_packing, cloud_prediction,],
-                                ["Edge", "GT Corrected", "Cloud Corrected", "Cloud Corrected with Packing", "GT Corrected (Random Sample)", "Cloud Corrected (Randome Sample)", "Cloud Corrected with Packing (Randome Sample)", "Cloud Prediction",],  gt_annotations)
     
-    import matplotlib.pyplot as plt
-    import seaborn as sns
+    # [name, recall, precision, accuracy]
+    performance_data = calculate_performance(
+        [
+            edge_results, 
+            # gt_corrected, 
+            cloud_corrected, 
+            cloud_corrected_with_packing, 
+            # gt_corrected_random, 
+            cloud_corrected_random, 
+            cloud_corrected_random_with_packing, 
+            # cloud_prediction,
+        ],   
+        ["Edge", 
+         # "GT Corrected", 
+         "Cloud Corrected", 
+         "Cloud Corrected with Packing", 
+         # "GT Corrected (Random Sample)", 
+         "Cloud Corrected (Randome Sample)", 
+         "Cloud Corrected with Packing (Randome Sample)", 
+         # "Cloud Prediction",
+        ],  
+        gt_annotations)
+    print(tabulate(performance_data, headers=['Name', 'Recall', 'Precision', 'Accuracy'], tablefmt='grid'))
+    
     # for different alphas ?
     
-    # Sample data
-    strategies = ['Full Edge', 'Smart Offloading (CP)', 'Smart Offloading (CP + Packing)', 'Random', 'Full Cloud']
-    offload_costs = [0, 20, 15, 20, 50]  # hypothetical # of API calls
-    precisions = [0.45, 0.65, 0.67, 0.55, 0.75]
-    recalls = []
-    accuraccies = []
+    strategies = ['Full Edge', 
+                  'Smart Offloading (CP)', 
+                  'Smart Offloading (CP + Packing)', 
+                  'Random', 
+                  'Random (+ Packing)', 
+                  # 'Full Cloud'
+                 ]
     
-    # Plot
-    plt.figure(figsize=(8, 6))
-    sns.lineplot(x=offload_costs, y=precisions, marker='o')
-    for i, label in enumerate(strategies):
-        plt.text(offload_costs[i], precisions[i]+0.01, label, fontsize=9)
+    offload_costs = [0, 
+                     len(offload_set), 
+                     len(offload_set)// (GRID_WIDTH * GRID_HEIGHT) + 1, 
+                     len(random_offload_set), 
+                     len(random_offload_set)// (GRID_WIDTH * GRID_HEIGHT) + 1, 
+                     # len(calibration_images)
+                    ]  # number of of API calls
+    # recalls = [row[1] for row in data]
+    # precisions = [row[2] for row in data]
+    # accuraccies = [row[3] for row in data]
+    plots = ['Recall', 'Precision', 'Accuraccy']
+    for index, plot in enumerate(plots):
+        data = [row[index+1] for row in performance_data]
+        plt.figure(figsize=(8, 6))
+        sns.lineplot(x=offload_costs, y=data, marker='o')
+
+        texts = [plt.text(offload_costs[i], data[i], label, fontsize=7) for i, label in enumerate(strategies)]
+        adjust_text(texts, arrowprops=dict(arrowstyle='->', color='gray'))
     
-    plt.xlabel('Offloading Cost (API Calls)')
-    plt.ylabel('Precision')
-    plt.title('Precision vs. Offloading Cost')
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(f"plots/{args.dataset}-precision_vs_cost.png", dpi=300, bbox_inches='tight')
+        plt.xlabel('Offloading Cost (API Calls)')
+        plt.ylabel(plot)
+        plt.title(f'{plot} vs. Offloading Cost')
+        plt.grid(True)
+        # plt.tight_layout()
+        plt.savefig(f"plots/{args.dataset}-{plot.lower()}_vs_cost.png", dpi=300, bbox_inches='tight')
     
 
 if __name__ == "__main__":
