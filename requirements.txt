@@ -8,3 +8,4 @@ rectangle-packer
 fiftyone
 scipy==1.10.1
 adjustText
+python-dotenv

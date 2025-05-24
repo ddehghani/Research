@@ -39,7 +39,66 @@ def calculate_performance(model_preds: list, model_names: list, gt_annotations: 
         data.append([name, recall, precision, accuracy])
 
     return data
+    
+def plot_lineplot(x_values_dict: dict[str, list[float]], y_values_dict: dict[str, list[float]], output_dir: str = ".") -> None:
+    """
+    Generates smooth line plots for all combinations of x and y variables.
 
+    Parameters:
+    - x_values_dict: dictionary where keys are variable names for x-axis (e.g., "Epoch", "Alpha") and values are lists of x values
+    - y_values_dict: dictionary where keys are variable names for y-axis (e.g., "Accuracy", "Loss") and values are lists of y values
+    - output_dir: directory to save the generated plots
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    for x_name, x_values in x_values_dict.items():
+        for y_name, y_values in y_values_dict.items():
+            if len(x_values) != len(y_values):
+                raise ValueError(f"Length mismatch between x '{x_name}' and y '{y_name}'")
+
+            sns.lineplot(x=x_values, y=y_values)  # No marker specified
+
+            plt.xlabel(x_name)
+            plt.ylabel(y_name)
+            plt.title(f"{x_name} vs {y_name}")
+            filename = f"{x_name.lower()}_vs_{y_name.lower()}.pdf"
+            filepath = os.path.join(output_dir, filename)
+            plt.savefig(filepath, bbox_inches='tight')
+            print(f"Saved plot to {filepath}")
+            plt.clf()
+
+def plot_multi_lineplot(x_values_dict: dict[str, list[float]], 
+                        y_values_dict: dict[str, list[float]], 
+                        output_dir: str = ".") -> None:
+    """
+    Plots multiple lines (from different y-variables) on a single plot for each x-variable.
+
+    Parameters:
+    - x_values_dict: dict where keys are x-axis labels (e.g., "Confidence Threshold"), values are x data (list of floats).
+    - y_values_dict: dict where keys are y labels (e.g., "Recall", "Accuracy"), values are y data (list of floats).
+    - output_dir: path to save plots.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    for x_name, x_values in x_values_dict.items():
+        plt.figure(figsize=(8, 6))
+
+        for y_name, y_values in y_values_dict.items():
+            if len(x_values) != len(y_values):
+                raise ValueError(f"Length mismatch between x '{x_name}' and y '{y_name}'")
+            sns.lineplot(x=x_values, y=y_values, label=y_name)  # Single line per y-variable
+
+        plt.xlabel(x_name)
+        plt.ylabel("Performance Metrics")
+        plt.title(f"{x_name} vs Performance Metrics")
+        plt.legend()
+        plt.grid(True)
+        filename = f"{x_name.lower().replace(' ', '_')}_vs_performance_metrics.pdf"
+        filepath = os.path.join(output_dir, filename)
+        plt.savefig(filepath, bbox_inches='tight')
+        print(f"Saved plot to {filepath}")
+        plt.clf()
+        
 def plot_scatterplot(x_values_dict: dict[str, list[float]], y_values_dict: dict[str, list[float]], output_dir: str = ".") -> None:
     """
     Generates scatter plots for all combinations of x and y variables.
@@ -60,8 +119,8 @@ def plot_scatterplot(x_values_dict: dict[str, list[float]], y_values_dict: dict[
             plt.xlabel(x_name)
             plt.ylabel(y_name)
             plt.title(f"{x_name} vs {y_name}")
-            filename = f"{x_name.lower()}_vs_{y_name.lower()}.png"
+            filename = f"{x_name.lower()}_vs_{y_name.lower()}.pdf"
             filepath = os.path.join(output_dir, filename)
-            plt.savefig(filepath, dpi=300, bbox_inches='tight')
+            plt.savefig(filepath, bbox_inches='tight')
             print(f"Saved plot to {filepath}")
             plt.clf()

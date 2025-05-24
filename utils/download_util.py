@@ -29,7 +29,7 @@ def download_open_images():
     from constants import OPEN_IMAGES_LABELS_MAP as mapping
     
     # Set fraction of the dataset you want to download
-    fraction = 0.0001
+    fraction = 0.0005
     
     mapped_classes = [k for k, v in mapping.items() if v is not None]
 

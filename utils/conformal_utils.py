@@ -2,22 +2,22 @@ from typing import Union, Callable
 from models import Instance
 from pathlib import Path
 from tqdm import tqdm
-from constants import COCO_LABELS, IOU_THRESHOLD
+from constants import COCO_LABELS, IOU_THRESHOLD, VOC_LABELS, OPEN_IMAGES_LABELS
 from .bbox_utils import iou
 from .annotation_utils import filter_annotations
 
-def compute_nonconformity_scores(images: list[str], predictions: list, get_annotations: Callable) -> list[float]:
+def compute_nonconformity_scores(images: list[str], predictions: list, get_annotations: Callable, label_list: list[str]) -> list[float]:
     """Compute nonconformity scores for a set of predictions and ground truth annotations."""
     scores = []
     for image, detections in tqdm(zip(images, predictions), total=len(images)):
         image_id = Path(image).stem
         gt_annotations = filter_annotations(get_annotations(image_id))
         for detection in filter_annotations(detections):
-            nonconformity = 1 - get_true_class_probability(detection, gt_annotations)
+            nonconformity = 1 - get_true_class_probability(detection, gt_annotations, label_list)
             scores.append(nonconformity)
     return scores
 
-def get_true_class_probability(annotation: Instance, gt_annotations: list[Instance]) -> float:
+def get_true_class_probability(annotation: Instance, gt_annotations: list[Instance], labels_list) -> float:
     """
     Returns the probability assigned to the closest ground truth class based on IoU.
     """
@@ -31,7 +31,7 @@ def get_true_class_probability(annotation: Instance, gt_annotations: list[Instan
             best_iou = iou_val
 
     if best_iou >= IOU_THRESHOLD:
-        class_id = COCO_LABELS.index(class_name)
+        class_id = labels_list.index(class_name)
         return annotation.probs[class_id]
     
     return 0.0
