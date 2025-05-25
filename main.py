@@ -165,7 +165,7 @@ def main(args):
         dataset_label_lists = {
             "coco" : COCO_LABELS,
             "voc" : VOC_LABELS,
-            "open-images": OPEN_IMAGES_LABELS,
+            "open-images": ["Airplane", "Apple", "Bag" , "Ball", "Banana", "Bed", "Bicycle", "Bird", "Bottle", "Car", "Chair", "Cup", "Flower", "Helmet", "Laptop", "Motorcycle", "Person", "TV", "Table", "Wheel"],
         }
         nonconformity_scores = compute_nonconformity_scores(calibration_images, edge_results, get_annotations, dataset_label_lists[args.dataset])
         
@@ -185,7 +185,7 @@ def main(args):
         # else:
         #     print(f"Using preset alpha: {args.alpha}")
 
-        alphas = [i * 0.02 for i in range(1, 50)]
+        alphas = [i * 0.004 for i in range(1, 80)]
         qhats = [np.quantile(nonconformity_scores, (1 - alpha) * (1 + 1 / len(nonconformity_scores))) for alpha in alphas]
         
     
