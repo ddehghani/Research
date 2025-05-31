@@ -7,5 +7,6 @@ supervision
 rectangle-packer 
 fiftyone
 scipy==1.10.1
+argparse
 adjustText
 python-dotenv
