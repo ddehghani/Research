@@ -187,37 +187,71 @@ def run_experiment(
     
     if plot:
         plots = ['Recall', 'Precision', 'Accuracy']
-        
-        # Assign a unique color to each strategy
+        markers = ['o', 's', '^', 'D', 'v', '*', 'P', 'X', '<', '>']  # Use enough unique markers
         colors = cm.get_cmap('tab10', len(strategies))
         
-        # Loop through each metric and create a separate plot
+        # Identify indices for 'FE' and 'FC'
+        fe_index = strategies_labels.index('FE') if 'FE' in strategies_labels else None
+        fc_index = strategies_labels.index('FC') if 'FC' in strategies_labels else None
+        
         for index, plot in enumerate(plots):
             data = [row[index + 1] for row in performance_data]  # offset by 1 because Name is at index 0
-        
-            # Create individual plot
+            
             plt.figure(figsize=(5, 3), dpi=300)
         
-            # Plot each point with a unique color
             for i in range(len(strategies)):
-                plt.scatter(offload_costs[i], data[i], color=colors(i), s=60, label=strategies_labels[i])
+                plt.scatter(offload_costs[i], data[i],
+                            color=colors(i),
+                            marker=markers[i % len(markers)],
+                            s=40,
+                            label=strategies_labels[i])
         
-            # Add legend
+            # Draw a line only between FE and FC
+            if fe_index is not None and fc_index is not None:
+                x_vals = [offload_costs[fe_index], offload_costs[fc_index]]
+                y_vals = [data[fe_index], data[fc_index]]
+                plt.plot(x_vals, y_vals, linestyle='-', linewidth=1.5, color='black', label='FE-FC Line')
+        
             plt.legend(fontsize=6, loc='best')
-        
-            # Axis labels and title
             plt.xlabel('Offloading Cost (API Calls)')
             plt.ylabel(plot)
             plt.title(f'{plot} vs. Offloading Cost')
             plt.grid(True)
         
-            # Save individual plot
             plt.savefig(f"{args.output_dir}/plots/{args.dataset}-{plot.lower()}_vs_cost.pdf", bbox_inches='tight')
             plt.close()
+        # plots = ['Recall', 'Precision', 'Accuracy']
+        
+        # # Assign a unique color to each strategy
+        # colors = cm.get_cmap('tab10', len(strategies))
+        
+        # # Loop through each metric and create a separate plot
+        # for index, plot in enumerate(plots):
+        #     data = [row[index + 1] for row in performance_data]  # offset by 1 because Name is at index 0
+        
+        #     # Create individual plot
+        #     plt.figure(figsize=(5, 3), dpi=300)
+        
+        #     # Plot each point with a unique color
+        #     for i in range(len(strategies)):
+        #         plt.scatter(offload_costs[i], data[i], color=colors(i), s=60, label=strategies_labels[i])
+        
+        #     # Add legend
+        #     plt.legend(fontsize=6, loc='best')
+        
+        #     # Axis labels and title
+        #     plt.xlabel('Offloading Cost (API Calls)')
+        #     plt.ylabel(plot)
+        #     plt.title(f'{plot} vs. Offloading Cost')
+        #     plt.grid(True)
+        
+        #     # Save individual plot
+        #     plt.savefig(f"{args.output_dir}/plots/{args.dataset}-{plot.lower()}_vs_cost.pdf", bbox_inches='tight')
+        #     plt.close()
+       
     return performance_data
 
 def sweep_over_alphas(
-    alphas,
     nonconformity_scores,
     calibration_images,
     edge_results,
@@ -225,6 +259,7 @@ def sweep_over_alphas(
     cloud_model,
     output_dir
 ):
+    alphas = [i * 0.005 for i in range(1, 100)]
     qhats = [
         np.quantile(nonconformity_scores, (1 - alpha) * (1 + 1 / len(nonconformity_scores)))
         for alpha in alphas
@@ -306,8 +341,7 @@ def sweep_over_alphas(
                              },
                              output_dir=os.path.join(args.output_dir, 'plots')
                            )
-   
-    return results
+    
     
 def main(args):
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
@@ -347,9 +381,7 @@ def main(args):
             calibration_images, edge_results, get_annotations, label_map[args.dataset]
         )
         if args.alpha is None:
-            alphas = [i * 0.01 for i in range(1, 50)]
-            results = sweep_over_alphas(
-                alphas,
+            sweep_over_alphas(
                 nonconformity_scores,
                 calibration_images,
                 edge_results,

@@ -18,22 +18,33 @@ def calculate_performance(model_preds: list, model_names: list, gt_annotations: 
     """
     tp = [0] * len(model_preds)
     fp = [0] * len(model_preds)
+    matched_gt = [0] * len(model_preds)
 
+   
+    
     for model_idx, model_pred in enumerate(model_preds):
+        matched_gt_idxs = set()
         for img_idx, annotations in enumerate(model_pred):
             for pred in annotations:
-                fp[model_idx] += 1
-                for gt in gt_annotations[img_idx]:
+                match_found = False
+                for gt_idx, gt in enumerate(gt_annotations[img_idx]):
+                    # if (img_idx, gt_idx) in matched_gt_idxs:
+                    #     continue  # Already matched this GT box
+                    
                     if iou(gt.bbox, pred.bbox) > iou_threshold and gt.name == pred.name:
                         tp[model_idx] += 1
-                        fp[model_idx] -= 1
+                        matched_gt_idxs.add((img_idx, gt_idx))
+                        match_found = True
                         break
+                if not match_found:
+                    fp[model_idx] += 1
+        matched_gt[model_idx] = len(matched_gt_idxs)
 
     gt_total = sum(len(anns) for anns in gt_annotations)
 
     data = []
     for idx, name in enumerate(model_names):
-        recall = tp[idx] / gt_total if gt_total else 0
+        recall = matched_gt[idx] / gt_total if gt_total else 0
         precision = tp[idx] / (tp[idx] + fp[idx]) if (tp[idx] + fp[idx]) else 0
         accuracy = tp[idx] / (gt_total + fp[idx]) if (gt_total + fp[idx]) else 0
         data.append([name, recall, precision, accuracy])
@@ -56,7 +67,7 @@ def plot_lineplot(x_values_dict: dict[str, list[float]], y_values_dict: dict[str
             if len(x_values) != len(y_values):
                 raise ValueError(f"Length mismatch between x '{x_name}' and y '{y_name}'")
 
-            sns.lineplot(x=x_values, y=y_values)  # No marker specified
+            sns.lineplot(x=x_values, y=y_values, marker="o")
 
             plt.xlabel(x_name)
             plt.ylabel(y_name)
@@ -86,7 +97,7 @@ def plot_multi_lineplot(x_values_dict: dict[str, list[float]],
         for y_name, y_values in y_values_dict.items():
             if len(x_values) != len(y_values):
                 raise ValueError(f"Length mismatch between x '{x_name}' and y '{y_name}'")
-            sns.lineplot(x=x_values, y=y_values, label=y_name)  # Single line per y-variable
+            sns.lineplot(x=x_values, y=y_values, label=y_name, marker="o")  # Single line per y-variable
 
         plt.xlabel(x_name)
         plt.ylabel("Performance Metrics")
