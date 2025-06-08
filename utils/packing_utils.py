@@ -39,7 +39,7 @@ def pack(images: list, grid_width: int, grid_height: int, padding_width: float, 
     max_height = max(pos[1] + size[1] for pos, size in zip(packed_positions, padded_sizes))
 
     annotations = []
-    packed_image = Image.new('RGB', (max_width, max_height))
+    packed_image = Image.new('RGB', (max_width, max_height), padding_color)
 
     for idx, img_path in enumerate(images):
         img = Image.open(img_path)
@@ -83,7 +83,7 @@ def gridify(images: list, grid_width: int, grid_height: int, padding_width: floa
     max_height += 2 * padding_width
 
     annotations = []
-    grid_image = Image.new('RGB', (grid_width * max_width, grid_height * max_height))
+    grid_image = Image.new('RGB', (grid_width * max_width, grid_height * max_height), padding_color)
 
     for idx, img_path in enumerate(images):
         img = Image.open(img_path)

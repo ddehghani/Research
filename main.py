@@ -13,7 +13,7 @@ from adjustText import adjust_text
 from dotenv import load_dotenv
 import matplotlib.cm as cm
 from utils import (
-    load_dataset, iou, annotateAndSave, filter_annotations, 
+    load_dataset, iou, annotateAndSave, filter_annotations, pack, gridify, annotateAndSave,
     calculate_performance, plot_scatterplot, plot_lineplot, plot_multi_lineplot,
     get_prediction_sets, compute_nonconformity_scores,
     apply_gt_corrections, apply_cloud_corrections, apply_cloud_corrections_with_packing)
@@ -47,7 +47,7 @@ def split_images(images: list[str], calibration_ratio: float) -> tuple[list[str]
     """Split images into calibration and detection sets based on the specified ratio."""
     random.shuffle(images)
     split_index = int(len(images) * calibration_ratio)
-    return images[:split_index], images[split_index:]
+    return images[1000:split_index+1000], images[split_index:]
 
 def sweep_over_conf(
     images: list[str], 
@@ -98,11 +98,11 @@ def sweep_over_conf(
                         output_dir=os.path.join(output_dir, 'plots'))
 
     
-    plot_multi_lineplot( x_values_dict = {"Conf Threshold" : confs},
+    plot_multi_lineplot( x_values_dict = {"Confidence Threshold" : confs},
                          y_values_dict={
                             "Recall": final_recalls,
                             "Precision": final_precisions,
-                            "Accuracy": final_accuracies
+                            # "Accuracy": final_accuracies
                          },
                          output_dir=os.path.join(output_dir, 'plots'))
 
@@ -187,12 +187,13 @@ def run_experiment(
     
     if plot:
         plots = ['Recall', 'Precision', 'Accuracy']
-        markers = ['o', 's', '^', 'D', 'v', '*', 'P', 'X', '<', '>']  # Use enough unique markers
+        markers = ['o', 's', '^', 'D', 'v', '*', 'P', 'X', '<', '>']  # Fallback markers
         colors = cm.get_cmap('tab10', len(strategies))
         
-        # Identify indices for 'FE' and 'FC'
+        # Indices for special strategies
         fe_index = strategies_labels.index('FE') if 'FE' in strategies_labels else None
         fc_index = strategies_labels.index('FC') if 'FC' in strategies_labels else None
+        sop_index = strategies_labels.index('SO-P') if 'SO-P' in strategies_labels else None
         
         for index, plot in enumerate(plots):
             data = [row[index + 1] for row in performance_data]  # offset by 1 because Name is at index 0
@@ -200,55 +201,35 @@ def run_experiment(
             plt.figure(figsize=(5, 3), dpi=300)
         
             for i in range(len(strategies)):
-                plt.scatter(offload_costs[i], data[i],
-                            color=colors(i),
-                            marker=markers[i % len(markers)],
-                            s=40,
-                            label=strategies_labels[i])
-        
-            # Draw a line only between FE and FC
+                if strategies_labels[i] == 'SO-P':
+                    plt.scatter(offload_costs[i], data[i],
+                                color='red',
+                                marker='*',
+                                s=90,  # make it bigger for visibility
+                                label='SO-P')
+                else:
+                    plt.scatter(offload_costs[i], data[i],
+                                color=colors(i),
+                                marker=markers[i % len(markers)],
+                                s=50,
+                                label=strategies_labels[i])
+
+            # Dashed line between FE and FC
             if fe_index is not None and fc_index is not None:
                 x_vals = [offload_costs[fe_index], offload_costs[fc_index]]
                 y_vals = [data[fe_index], data[fc_index]]
-                plt.plot(x_vals, y_vals, linestyle='-', linewidth=1.5, color='black', label='FE-FC Line')
+                plt.plot(x_vals, y_vals, linestyle='--', linewidth=1.5, color='black', label='FE-FC Line')
         
-            plt.legend(fontsize=6, loc='best')
-            plt.xlabel('Offloading Cost (API Calls)')
-            plt.ylabel(plot)
-            plt.title(f'{plot} vs. Offloading Cost')
+            plt.legend(fontsize=14, loc='best', ncol=2)
+            plt.xlabel('Offloading Cost (API Calls)', fontsize=18)
+            plt.ylabel(plot, fontsize=18)
+            plt.xticks(fontsize=12)
+            plt.yticks(fontsize=12)
             plt.grid(True)
         
             plt.savefig(f"{args.output_dir}/plots/{args.dataset}-{plot.lower()}_vs_cost.pdf", bbox_inches='tight')
             plt.close()
-        # plots = ['Recall', 'Precision', 'Accuracy']
-        
-        # # Assign a unique color to each strategy
-        # colors = cm.get_cmap('tab10', len(strategies))
-        
-        # # Loop through each metric and create a separate plot
-        # for index, plot in enumerate(plots):
-        #     data = [row[index + 1] for row in performance_data]  # offset by 1 because Name is at index 0
-        
-        #     # Create individual plot
-        #     plt.figure(figsize=(5, 3), dpi=300)
-        
-        #     # Plot each point with a unique color
-        #     for i in range(len(strategies)):
-        #         plt.scatter(offload_costs[i], data[i], color=colors(i), s=60, label=strategies_labels[i])
-        
-        #     # Add legend
-        #     plt.legend(fontsize=6, loc='best')
-        
-        #     # Axis labels and title
-        #     plt.xlabel('Offloading Cost (API Calls)')
-        #     plt.ylabel(plot)
-        #     plt.title(f'{plot} vs. Offloading Cost')
-        #     plt.grid(True)
-        
-        #     # Save individual plot
-        #     plt.savefig(f"{args.output_dir}/plots/{args.dataset}-{plot.lower()}_vs_cost.pdf", bbox_inches='tight')
-        #     plt.close()
-       
+            
     return performance_data
 
 def sweep_over_alphas(
@@ -259,7 +240,7 @@ def sweep_over_alphas(
     cloud_model,
     output_dir
 ):
-    alphas = [i * 0.005 for i in range(1, 100)]
+    alphas = [i * 0.01 for i in range(1, 50)]
     qhats = [
         np.quantile(nonconformity_scores, (1 - alpha) * (1 + 1 / len(nonconformity_scores)))
         for alpha in alphas
@@ -318,7 +299,6 @@ def sweep_over_alphas(
                             "Cost": costs,
                             "Recall": final_recalls,
                             "Precision": final_precisions,
-                            "Accuracy": final_accuracies
                         },
                         output_dir=os.path.join(args.output_dir, 'plots')
                      )
@@ -328,7 +308,6 @@ def sweep_over_alphas(
                              y_values_dict={
                                 "Recall": final_recalls,
                                 "Precision": final_precisions,
-                                "Accuracy": final_accuracies
                              },
                              output_dir=os.path.join(args.output_dir, 'plots')
                            )
@@ -337,7 +316,6 @@ def sweep_over_alphas(
                              y_values_dict={
                                 "Recall": final_recalls,
                                 "Precision": final_precisions,
-                                "Accuracy": final_accuracies
                              },
                              output_dir=os.path.join(args.output_dir, 'plots')
                            )
@@ -351,7 +329,7 @@ def main(args):
     edge_model = dataset["edge_model"]
     cloud_model = dataset["cloud_model"]
 
-
+    print(f"Experimenting with {GRID_WIDTH} by {GRID_HEIGHT}")
     # Split images
     calibration_images, detection_images = split_images(images, args.calibration_ratio)
     print(f"Calibration images: {len(calibration_images)}, Detection images: {len(detection_images)}")
@@ -359,6 +337,7 @@ def main(args):
     # Load GT annotations once
     gt_annotations = [filter_annotations(get_annotations(Path(img).stem)) for img in calibration_images]
 
+    
     if not args.conf:
         sweep_over_conf(calibration_images, gt_annotations, args.output_dir, IOU_THRESHOLD, edge_model, cloud_model, args.qhat)
         return

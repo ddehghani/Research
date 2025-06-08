@@ -4,7 +4,7 @@ from pathlib import Path
 from models import Model
 from .image_utils import load_image
 from .annotation_utils import filter_annotations
-from .packing_utils import pack
+from .packing_utils import pack, gridify
 from .bbox_utils import contains, iou
 from constants import CROP_PADDING, ACCEPTANCE_MARGIN, PACKING_PADDING, GRID_WIDTH, GRID_HEIGHT, REMOVE_LABELS
 from PIL import Image
@@ -88,12 +88,24 @@ def apply_cloud_corrections_with_packing(
 
     # Batch process cropped images
     for i in range(0, len(cropped_info), batch_size):
+        # import random
+        # random.shuffle(cropped_info)
         batch = cropped_info[i:i + batch_size]
         paths = [entry[0] for entry in batch]
-        annotations, packed_img = pack(paths, GRID_WIDTH, GRID_HEIGHT, PACKING_PADDING, 0)
+        annotations, packed_img = pack(paths, GRID_WIDTH, GRID_HEIGHT, PACKING_PADDING, 255)
         packed_path = temp_dir / f"cloud_input_packed_{i // batch_size}.jpg"
         packed_img.save(packed_path)
 
+
+        # # for testing only
+        # grid_path = temp_dir / f"cloud_input_grid_{i // batch_size}.jpg"
+        # annotations, grid_img = gridify(paths, GRID_WIDTH, GRID_HEIGHT, PACKING_PADDING, (245, 245, 245))
+        # grid_img.save(grid_path)
+
+        # input(f"cloud_input_packed_{i // batch_size}.jpg good? ")
+
+
+        
         # Detect and pre-filter predictions
         cloud_preds = filter_annotations(cloud_model.detect([str(packed_path)]))[0]
         cloud_preds = [pred for pred in cloud_preds if pred.bbox[2] > 4 and pred.bbox[3] > 4]  # Example size filter
