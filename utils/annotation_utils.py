@@ -65,17 +65,4 @@ def get_voc_annotations(image_id: str, annotations_dir: str) -> list[Instance]:
             xmlbox = obj.find("bndbox")
             bb = convert_box([float(xmlbox.find(x).text) for x in ("xmin", "xmax", "ymin", "ymax")])
             instances.append(Instance(name=cls, confidence=1.0, bbox=bb))
-    return instances
-
-
-# def get_annotations(image_id: str, labels_dir: str) -> list[Instance]:
-#     for file in os.listdir(labels_dir):
-#         if file.endswith(".txt") and file == image_id + ".txt":
-#             file_path = os.path.join(labels_dir, file)
-#             with open(file_path, 'r') as f:
-#                 for line in f:
-#                     parts = line.strip().split()
-#                     if len(parts) == 5:
-#                         class_id = parts[0]
-#                         bbox = parts[1:]  # [x_center, y_center, width, height]
-#                         print(f"Class ID: {class_id}, BBox: {bbox}")
+    return instances             print(f"Class ID: {class_id}, BBox: {bbox}")

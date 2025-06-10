@@ -57,7 +57,7 @@ def sweep_over_conf(
     edge_model: Model,
     cloud_model: Model,
     qhat
-) -> float:
+) -> None:
     confs = [0.05 * i + 0.05 for i in range(19)]
     recalls = []
     final_recalls = []

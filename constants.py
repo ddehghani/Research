@@ -15,7 +15,7 @@ ACCEPTANCE_MARGIN = 40 # Margin for accepting a prediction from the cloud
 
 # Constants for packing crops
 PACKING_PADDING = 35
-GRID_WIDTH, GRID_HEIGHT = 2, 2
+GRID_WIDTH, GRID_HEIGHT = 3, 3
 
 # Whether to remove labels from the edge results if the cloud prediction does not include them
 REMOVE_LABELS = False

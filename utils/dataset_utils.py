@@ -16,7 +16,7 @@ sys.path.append(parent_dir)
 from constants import OPEN_IMAGES_LABELS_MAP as mapping
 
 
-def load_dataset(dataset_name: str, dataset_dir: str) -> Dict:
+def load_dataset(dataset_name: str, dataset_dir: str, download: bool) -> Dict:
     def get_images(input_dir: str) -> list[str]:
         """Retrieve all image paths from the input directory."""
         return sorted([str(p) for p in Path(input_dir).glob("*.jpg")])  # Modify for other formats if needed
@@ -26,7 +26,9 @@ def load_dataset(dataset_name: str, dataset_dir: str) -> Dict:
         dataset_dir.mkdir(parents=True, exist_ok=True)
 
     if dataset_name == "coco":
-        # download_coco(dataset_dir / "coco")
+        if download:
+            print("Downloading COCO dataset...")
+            download_coco(dataset_dir / "coco")
         annotations = dataset_dir / "coco/annotations/instances_train2017.json"
         data_dir = dataset_dir / "coco/images/train2017"
 
@@ -39,7 +41,9 @@ def load_dataset(dataset_name: str, dataset_dir: str) -> Dict:
             "cloud_model": YOLO(MAIN_DIR / "models/coco_cloud.pt"),
         }
     elif dataset_name == "voc":
-        # download_voc(dataset_dir / "voc")
+        if download:
+            print("Downloading VOC dataset...")
+            download_voc(dataset_dir / "voc")
         return {
             "images": get_images(dataset_dir / "voc/VOCdevkit/VOC2012/JPEGImages/"),
             "get_annotations": lambda img_id: get_voc_annotations(img_id, dataset_dir / "voc/VOCdevkit/VOC2012/Annotations/"),
