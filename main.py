@@ -9,25 +9,12 @@ from constants import IOU_THRESHOLD, GRID_WIDTH, GRID_HEIGHT, COCO_LABELS, VOC_L
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 import seaborn as sns
-from adjustText import adjust_text
-from dotenv import load_dotenv
 import matplotlib.cm as cm
 from utils import (
     load_dataset, iou, annotateAndSave, filter_annotations, pack, gridify, annotateAndSave,
     calculate_performance, plot_scatterplot, plot_lineplot, plot_multi_lineplot,
     get_prediction_sets, compute_nonconformity_scores,
     apply_gt_corrections, apply_cloud_corrections, apply_cloud_corrections_with_packing)
-
-# Set theme and matplotlib defaults
-plt.figure(figsize=(5, 3), dpi=300)
-sns.set_theme(font_scale=1.5, context='paper', style='white', palette='deep')
-plt.rcParams["font.family"] = "DejaVu Sans"
-plt.rcParams['pdf.fonttype'] = 42
-plt.rcParams['ps.fonttype'] = 42
-default_configs = dict(
-    linewidth=4,
-    markersize=10,
-)
 
 
 def select_random_bboxes(edge_results, total_to_select):
@@ -42,6 +29,7 @@ def select_random_bboxes(edge_results, total_to_select):
     ]
 
     return random.sample(all_indices, min(total_to_select, len(all_indices)))
+
 
 def split_images(images: list[str], calibration_ratio: float) -> tuple[list[str], list[str]]:
     """Split images into calibration and detection sets based on the specified ratio."""

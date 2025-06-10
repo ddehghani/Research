@@ -44,8 +44,7 @@ def calculate_performance(model_preds: list, model_names: list, gt_annotations: 
 
     data = []
     for idx, name in enumerate(model_names):
-        recall = matched_gt[idx] / gt_total if gt_total else 0
-        # recall = tp[idx] / gt_total if gt_total else 0
+        recall = tp[idx] / gt_total if gt_total else 0
         precision = tp[idx] / (tp[idx] + fp[idx]) if (tp[idx] + fp[idx]) else 0
         accuracy = tp[idx] / (gt_total + fp[idx]) if (gt_total + fp[idx]) else 0
         data.append([name, recall, precision, accuracy])
