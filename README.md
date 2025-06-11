@@ -126,10 +126,3 @@ Reproduce paper results by:
 
 - Using matching datasets and confidence/alpha parameters
 - Refer to `main.py` and `Cloud_Offloading.pdf` for experimental configurations
-
----
-
-## 📬 Contact
-
-For questions or collaborations, contact:  
-**Davood – ddehghani@icloud.com**
