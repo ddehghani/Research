@@ -31,7 +31,7 @@ Our framework enables:
 ```
 .
 ├── main.py                           # Entry point for experiments
-├── models/                           # Model definitions and wrappers
+├── models/                           # Models used for each dataset.
 ├── utils.py                          # Core utilities: iou, packing, plotting
 ├── constants.py                      # Thresholds, label maps, and configs
 ├── datasets/                         # Dataset directory
@@ -65,9 +65,22 @@ You can automatically download datasets using the `--download` flag. This flag c
 python main.py outputs/ --dataset coco --qhat 0.9 --download
 ```
 
+### 3. Add Models
+
+The `models/` directory should contain the models used for each dataset. You can and should place your trained models here using a consistent naming convention based on the dataset and model type. For example:
+
+- `coco_edge.pt` – Edge model for COCO dataset
+- `coco_cloud.pt` – Cloud model for COCO dataset
+- `voc_edge.pt` – Edge model for Pascal VOC
+- `voc_cloud.pt` – Cloud model for Pascal VOC
+- `oiv7_edge.pt` – Edge model for Open Images V7
+- `oiv7_cloud.pt` – Cloud model for Open Images V7
+
+These filenames are expected by the experiment runner to load the appropriate models automatically.
+
 ---
 
-### 3. Run an Experiment
+### 4. Run an Experiment
 
 To see the effect of the parameter confidence threshold on our results:
 
