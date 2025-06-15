@@ -74,7 +74,7 @@ def load_dataset(dataset_name: str, dataset_dir: str, download: bool = False) ->
         return {
             "images": [sample.filepath for sample in dataset],
             "get_annotations": lambda img_id: gt[img_id],
-            "edge_model": YOLO(str(MAIN_DIR / "models/yolov5nu_map2.pt")),
+            "edge_model": YOLO(str(MAIN_DIR / "models/oiv7_edge.pt")),
             "cloud_model": YOLO(str(MAIN_DIR / "models/oiv7_cloud.pt")),
         }
     else:

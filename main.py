@@ -311,7 +311,7 @@ def sweep_over_alphas(
     
 def main(args):
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    dataset = load_dataset(args.dataset, args.datasets_dir)
+    dataset = load_dataset(args.dataset, args.datasets_dir, download=args.download)
     get_annotations = dataset["get_annotations"]
     images = dataset["images"]
     edge_model = dataset["edge_model"]
@@ -376,9 +376,7 @@ def main(args):
     print(tabulate(performance_data, headers=["Name", "Recall", "Precision", "Accuracy"], tablefmt="grid"))
         
 
-if __name__ == "__main__":
-    # load_dotenv()
-    
+if __name__ == "__main__":    
     parser = argparse.ArgumentParser(description="Prepare datasets for selective cloud offloading in object detection.")
     parser.add_argument("output_dir", type=str)
     parser.add_argument("--dataset", type=str,  default="coco", choices=["coco", "voc", "open-images"], help="Dataset to use: coco or voc, or open-images")
@@ -387,6 +385,7 @@ if __name__ == "__main__":
     parser.add_argument("--qhat", type=float)
     parser.add_argument("--conf", type=float)
     parser.add_argument("--datasets_dir", type=str, default="./datasets", help="Where to store datasets")
+    parser.add_argument("--download", action="store_true", help="If set, download the dataset before processing")
     args = parser.parse_args()
     main(args)
 

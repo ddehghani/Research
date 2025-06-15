@@ -36,7 +36,7 @@ Our framework enables:
 ├── constants.py             # Thresholds, label maps, and configs
 ├── datasets/                # Dataset directory
 ├── plots/                   # Auto-generated output plots
-└── Cloud_Offloading.pdf     # Full research paper
+└── SelectiveCloudOffloading.pdf     # Full research paper
 ```
 
 ---
@@ -59,23 +59,23 @@ Supported datasets:
 
 The default dataset directory is `./datasets`.
 
+You can automatically download datasets using the `--download` flag. This flag can be added to any experiment command to ensure the dataset is downloaded before processing. For example:
+
+```bash
+python main.py outputs/ --dataset coco --qhat 0.9 --download
+```
+
 ---
 
 ### 3. Run an Experiment
 
-Basic run:
+To see the effect of the parameter confidence threshold on our results:
 
 ```bash
-python main.py outputs/ --dataset coco
+python main.py outputs/ --dataset coco --qhat 0.9
 ```
 
-Sweep over confidence:
-
-```bash
-python main.py outputs/ --dataset coco --qhat 0.8
-```
-
-Sweep over alpha:
+To see the effect of the parameter alpha on our results:
 
 ```bash
 python main.py outputs/ --dataset voc --conf 0.2
@@ -117,12 +117,3 @@ python main.py outputs/ --dataset open-images --conf 0.2 --alpha 0.2
 - Alpha vs Offloading Cost
 - Precision/Recall vs API Calls
 - Comparison: Full Edge vs Selective vs Full Cloud
-
----
-
-## 🧪 Reproducibility
-
-Reproduce paper results by:
-
-- Using matching datasets and confidence/alpha parameters
-- Refer to `main.py` and `Cloud_Offloading.pdf` for experimental configurations
