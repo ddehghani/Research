@@ -30,13 +30,13 @@ Our framework enables:
 
 ```
 .
-├── main.py                   # Entry point for experiments
-├── models/                  # Model definitions and wrappers
-├── utils.py                 # Core utilities: iou, packing, plotting
-├── constants.py             # Thresholds, label maps, and configs
-├── datasets/                # Dataset directory
-├── plots/                   # Auto-generated output plots
-└── SelectiveCloudOffloading.pdf     # Full research paper
+├── main.py                           # Entry point for experiments
+├── models/                           # Model definitions and wrappers
+├── utils.py                          # Core utilities: iou, packing, plotting
+├── constants.py                      # Thresholds, label maps, and configs
+├── datasets/                         # Dataset directory
+├── plots/                            # Auto-generated output plots
+└── SelectiveCloudOffloading.pdf      # Full research paper
 ```
 
 ---
