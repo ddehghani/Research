@@ -44,8 +44,8 @@ def contains(boxA: List[float], boxB: List[float]) -> bool:
         True if boxA contains boxB, False otherwise.
     """
     return (
-        boxA[0] < boxB[0] and
-        boxA[1] < boxB[1] and
-        boxB[0] + boxB[2] < boxA[0] + boxA[2] and
-        boxB[1] + boxB[3] < boxA[1] + boxA[3]
+        boxA[0] <= boxB[0] and
+        boxA[1] <= boxB[1] and
+        boxB[0] + boxB[2] <= boxA[0] + boxA[2] and
+        boxB[1] + boxB[3] <= boxA[1] + boxA[3]
     )

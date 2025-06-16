@@ -65,4 +65,5 @@ def get_voc_annotations(image_id: str, annotations_dir: str) -> list[Instance]:
             xmlbox = obj.find("bndbox")
             bb = convert_box([float(xmlbox.find(x).text) for x in ("xmin", "xmax", "ymin", "ymax")])
             instances.append(Instance(name=cls, confidence=1.0, bbox=bb))
-    return instances             print(f"Class ID: {class_id}, BBox: {bbox}")
+    return instances
+    

@@ -21,7 +21,6 @@ ENV/
 # YOLO training artifacts
 runs/
 weights/
-*.pt
 *.onnx
 *.tflite
 *.mlmodel
@@ -66,7 +65,6 @@ coverage.xml
 .pytest_cache/
 
 # Temporary output directories
-open-images/
+old_files/
 datasets/
-models/
 plots/

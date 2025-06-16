@@ -20,25 +20,22 @@ def load_dataset(dataset_name: str, dataset_dir: str, download: bool = False) ->
     def get_images(input_dir: str) -> list[str]:
         """Retrieve all image paths from the input directory."""
         return sorted([str(p) for p in Path(input_dir).glob("*.jpg")])  # Modify for other formats if needed
-    # download the dataset if it doesn't exist
     dataset_dir_path: Path = Path(dataset_dir)
-    if not dataset_dir_path.exists():
-        dataset_dir_path.mkdir(parents=True, exist_ok=True)
+
 
     if dataset_name == "coco":
         if download:
             print("Downloading COCO dataset...")
             download_coco(str(dataset_dir_path / "coco"))
         annotations = dataset_dir_path / "coco/annotations/instances_train2017.json"
-        data_dir = dataset_dir_path / "coco/images/train2017"
 
         with open(annotations, 'r') as f:
             gt = json.load(f)
         return {
-            "images": get_images(str(data_dir)),
+            "images": get_images(str(dataset_dir_path / "coco/images/train2017")),
             "get_annotations": lambda img_id: get_coco_annotations(gt, img_id + ".jpg"),
-            "edge_model": YOLO(str(MAIN_DIR / "models/coco_edge.pt")),
-            "cloud_model": YOLO(str(MAIN_DIR / "models/coco_cloud.pt")),
+            "edge_model": YOLO("yolov5nu.pt"),
+            "cloud_model": YOLO("yolo11x.pt"),
         }
     elif dataset_name == "voc":
         if download:
