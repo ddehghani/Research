@@ -1,11 +1,11 @@
 import math
 from PIL import Image
-import rpack
+from rectpack import newPacker, PackingMode, MaxRectsBssf
 import numpy as np
 from models import Instance
 from .image_utils import add_padding
 
-def pack(images: list, grid_width: int, grid_height: int, padding_width: float, padding_color: int):
+def pack(images: list, padding_width: float, padding_color: int):
     """
     Packs a list of images into a compact layout using rectangle packing, adding padding around each image.
 
@@ -21,25 +21,40 @@ def pack(images: list, grid_width: int, grid_height: int, padding_width: float, 
     - packed_image: a single PIL.Image with all input images packed together
     """
     padded_sizes = []
-    total_area = 0
-
+    min_size = 0
+    max_size = 0
+    
     for img_path in images:
         img = Image.open(img_path)
         width, height = img.size
         width += 2 * padding_width
         height += 2 * padding_width
-        total_area += width * height
+        max_size += max(width, height)
+        min_size = max(min_size, width)
+        min_size = max(min_size, height)
         padded_sizes.append((width, height))
 
-    total_area *= 1.7
-    ratio = math.ceil(math.sqrt(total_area / (grid_width * grid_height)))
-    packed_positions = rpack.pack(padded_sizes, grid_width * ratio)
+    
+    packed_positions = [None] * len(padded_sizes)
+    bin_width = 0
 
-    max_width = max(pos[0] + size[0] for pos, size in zip(packed_positions, padded_sizes))
-    max_height = max(pos[1] + size[1] for pos, size in zip(packed_positions, padded_sizes))
+    for bin_width in range(min_size, max_size, 50):  # Sweep over widths
+        print(f"Trying bin width: {bin_width}")
+        packer = newPacker(mode=PackingMode.Offline, pack_algo=MaxRectsBssf, rotation=False)
+        packer.add_bin(bin_width, bin_width)
+        for idx, size in enumerate(padded_sizes):
+            packer.add_rect(size[0], size[1], idx)
+        packer.pack()
+        bin = packer[0]
+        if (len(bin) == len(padded_sizes)):
+            print(f"Successfully packed with bin width: {bin_width}")
+            for rect in bin:
+                packed_positions[rect.rid] = (rect.x, rect.y)
+            print(f"Packed positions: {packed_positions}")
+            break
 
     annotations = []
-    packed_image = Image.new('RGB', (max_width, max_height), padding_color)
+    packed_image = Image.new('RGB', (bin_width, bin_width), padding_color)
 
     for idx, img_path in enumerate(images):
         img = Image.open(img_path)
